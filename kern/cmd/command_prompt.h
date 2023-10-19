@@ -23,6 +23,7 @@ enum{
 CMD_INVALID = -3,
 CMD_INV_NUM_ARGS,
 CMD_MATCHED,
+NOT_FOUND = -5320,
 };
 //================================================
 

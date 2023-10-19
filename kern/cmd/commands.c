@@ -443,18 +443,16 @@ struct Env * CreateEnv(int number_of_arguments, char **arguments)
 
 int command_run_program(int number_of_arguments, char **arguments)
 {
+
 	//[1] Create and initialize a new environment for the program to be run
 	struct Env *env = CreateEnv(number_of_arguments, arguments);
 
 	if(env == NULL) return 0;
 	cprintf("\nEnvironment Id= %d\n",env->env_id);
-
 	numOfKheapVACalls = 0;
-
 	//[2] Run the created environment by adding it to the "ready" queue then invoke the scheduler to execute it
 	sched_new_env(env);
 	sched_run_env(env->env_id);
-
 	return 0;
 }
 
