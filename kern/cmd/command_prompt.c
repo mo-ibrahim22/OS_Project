@@ -264,21 +264,20 @@ void run_command_prompt()
 	//========================
 
 	char command_line[BUFLEN];
-
 	while (1==1)
 	{
 		//readline("FOS> ", command_line);
 
 		// ********** This DosKey supported readline function is a combined implementation from **********
 		// ********** 		Mohamed Raafat & Mohamed Yousry, 3rd year students, FCIS, 2017		**********
-		// ********** 				Combined, edited and modified by TA\Ghada Hamed				**********
+		// ********** 				Combined, edited and modified by TA\Ghada Hamed **********
 		memset(command_line, 0, sizeof(command_line));
 		command_prompt_readline("FOS> ", command_line);
-
 		//parse and execute the command
 		if (command_line != NULL)
 			if (execute_command(command_line) < 0)
 				break;
+
 	}
 }
 
@@ -373,71 +372,91 @@ int execute_command(char *command_string)
 	}
 	return 0;
 }
+// start of process command code and related code
+ void FreeFoundCommandsLinkedList() // to empty elements in the linked list of found command
+ {
+	 int numOfFoundCmds = LIST_SIZE(&foundCommands);
+	 	while(numOfFoundCmds> 0){
+	 		struct Command * cmd = LIST_FIRST(&foundCommands);
+	 		LIST_REMOVE(&foundCommands, cmd);
+	 		numOfFoundCmds--;
+	 	}
+ }
 
+ int HandleCaseOfcommandNameFound(int  number_of_arguments , char * command_name , int i)
+ {
+	 if(strlen(commands[i].name)==strlen(command_name) && strncmp(command_name,commands[i].name,strlen(commands[i].name)) == 0 )
+	 {
+	 			if(number_of_arguments - 1 != commands[i].num_of_args)
+	 			{
+	 				if(commands[i].num_of_args == -1)
+	 				{
+	 					if(number_of_arguments - 1 > 0)
+	 					{
+	 						return i;
+	 					}
+	 				}
+	 				LIST_INSERT_TAIL(&foundCommands, &commands[i]);
+	 				return CMD_INV_NUM_ARGS;
+	 			}
+	 			else
+	 			{
+	 				return i;
+	 			}
+	 }
+	 return NOT_FOUND ;
+ }
+ void HandleCaseOfCommandNameNotFound( char *cmdName ,char* command_name ,int i ,int * is_command_matched)
+ {
 
-int process_command(int number_of_arguments, char** arguments)
-{
-	int numOfFoundCmds = LIST_SIZE(&foundCommands);
-	while(numOfFoundCmds> 0){
-		struct Command * cmd = LIST_FIRST(&foundCommands);
-		LIST_REMOVE(&foundCommands, cmd);
-		numOfFoundCmds--;
-	}
-
-	cprintf("%d\n",number_of_arguments - 1);
-
-	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
-	//Comment the following line before start coding...
-	//panic("process_command is not implemented yet");
-
-	char* command_name = arguments[0];
-	//int is_command_found = 0;
-	for(int i = 0; i < NUM_OF_COMMANDS; i++){
-		if(strncmp(command_name,commands[i].name,strlen(commands[i].name)) == 0){
-			if(number_of_arguments - 1 != commands[i].num_of_args){
-				if(commands[i].num_of_args == -1){
-					if(number_of_arguments - 1 > 0){
-						return i;
-					}
-				}
-				cprintf("%d\n",commands[i].num_of_args);
-				LIST_INSERT_TAIL(&foundCommands, &commands[i]);
-				return CMD_INV_NUM_ARGS;
-			}else{
-				// code of valid comand and vaild num of args
-				//cprintf("%d\n",i);
-				//is_command_found = 1;
-				return i;
-			}
-		}
-	}
-
-	int is_command_matched = 0;
-	for(int i = 0; i < NUM_OF_COMMANDS; i++){
-		char* cmdName = commands[i].name;
 		int start = 0, cnt = 0;
-		for(int k = 0; k < strlen(command_name); k++){
-			for(int j = start; j < strlen(cmdName); j++){
-				if(command_name[k] == cmdName[j]){
+		for(int k = 0; k < strlen(command_name); k++)
+		{
+			for(int j = start; j < strlen(cmdName); j++)
+			{
+				if(command_name[k] == cmdName[j])
+				{
 					start = j+1;
 					cnt++;
 					break;
 				}
 			}
 		}
-		if(cnt == strlen(command_name)){
-			//cprintf("counter = %d\n", cnt);
+		if(cnt == strlen(command_name))
+		{
+			*is_command_matched=1;
 			LIST_INSERT_TAIL(&foundCommands, &commands[i]);
-			is_command_matched = 1;
 		}
+ }
+ int process_command(int number_of_arguments, char** arguments)
+ {
+	FreeFoundCommandsLinkedList();
+	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
+	//Comment the following line before start coding...
+	//panic("process_command is not implemented yet");
+	char* command_name = arguments[0];
+	// case of command found
+	for(int i = 0; i < NUM_OF_COMMANDS; i++)
+	{
+		 int commandNumber = HandleCaseOfcommandNameFound(number_of_arguments ,command_name ,i);
+		 if(commandNumber != NOT_FOUND) // means that command found
+			 return commandNumber;
 	}
-
-	if(is_command_matched == 1){
-		//cprintf("%d\n", LIST_SIZE(&foundCommands));
+    // case of command not found
+	int is_command_matched = 0;
+	for(int i = 0; i < NUM_OF_COMMANDS; i++)
+	{
+		char* cmdName = commands[i].name;
+		// match or not
+		HandleCaseOfCommandNameNotFound(cmdName ,command_name,i,&is_command_matched);
+	}
+	if(is_command_matched == 1)
+	{
 		return CMD_MATCHED;
-	}else{
+	}
+	else
+	{
 		return CMD_INVALID;
 	}
-
 	return 0;
 }
