@@ -1,5 +1,4 @@
 /* See COPYRIGHT for copyright information. */
-// kernel side
 
 #include <inc/x86.h>
 #include <inc/error.h>
@@ -259,7 +258,7 @@ int sys_pf_calculate_allocated_pages(void)
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	if(!virtual_address || !size || virtual_address > USER_LIMIT || virtual_address + size > USER_LIMIT){
-		sched_kill_env(curenv->env_id);
+			sched_kill_env(curenv->env_id);
 	}
 	if(isBufferingEnabled())
 	{
@@ -275,7 +274,7 @@ void sys_free_user_mem(uint32 virtual_address, uint32 size)
 void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 {
 	if(!virtual_address || !size || virtual_address > USER_LIMIT || virtual_address + size > USER_LIMIT){
-		sched_kill_env(curenv->env_id);
+			sched_kill_env(curenv->env_id);
 	}
 	allocate_user_mem(curenv, virtual_address, size);
 	return;
@@ -487,6 +486,7 @@ void sys_bypassPageFault(uint8 instrLength)
 /*2024*/
 void* sys_sbrk(int increment)
 {
+
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
 	return (void*)-1 ;
@@ -511,7 +511,7 @@ void* sys_sbrk(int increment)
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
-	struct Env* env = curenv; //the current running Environment to adjust its break limit
+	struct Env* env = curenv;//the current running Environment to adjust its break limit
 
 
 }
@@ -531,13 +531,11 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	case SYS_sbrk:
 		sys_sbrk((int)a1);
 		break;
-
-	case SYS_free_user_mem:
-		sys_free_user_mem(a1, a2);
-		break;
-
 	case SYS_allocate_user_mem:
-		sys_allocate_user_mem(a1, a2);
+		sys_allocate_user_mem(a1 ,a2);
+		break;
+	case SYS_free_user_mem:
+		sys_free_user_mem(a1,a2);
 		break;
 	//=====================================================================
 	case SYS_cputs:
@@ -563,16 +561,13 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	case SYS_pf_calc_allocated_pages:
 		return sys_pf_calculate_allocated_pages();
 		break;
-
 	case SYS_calculate_pages_tobe_removed_ready_exit:
 		return sys_calculate_pages_tobe_removed_ready_exit(a1);
 		break;
-
 	case SYS_scarce_memory:
 		sys_scarce_memory();
 		return 0;
 		break;
-
 	case SYS_allocate_chunk_in_mem:
 		sys_allocate_chunk(a1, (uint32)a2, a3);
 		return 0;

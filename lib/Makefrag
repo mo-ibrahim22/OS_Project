@@ -15,8 +15,6 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/concurrency.c
 
 
-
-
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 

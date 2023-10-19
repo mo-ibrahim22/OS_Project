@@ -1,5 +1,4 @@
 // System call stubs.
-// user side
 
 #include <inc/syscall.h>
 #include <inc/lib.h>
@@ -31,7 +30,6 @@ syscall(int num, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uint32 a5)
 		  "D" (a4),
 		  "S" (a5)
 		: "cc", "memory");
-
 	return ret;
 }
 
@@ -338,25 +336,22 @@ void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 void* sys_sbrk(int increment)
 {
 	//Comment the following line before start coding...
-//	panic("not implemented yet");
-	syscall(SYS_sbrk, (uint32)increment, 0, 0, 0, 0);
-	return NULL;
+	//panic("not implemented yet");
+	 syscall(SYS_sbrk,(uint32)increment,0,0,0,0);
+	 return (void*)-1 ;
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
-//	panic("not implemented yet");
-	syscall(SYS_free_user_mem, virtual_address, size, 0, 0, 0);
-	return;
+	//panic("not implemented yet");
+	syscall(SYS_free_user_mem,virtual_address,size,0,0,0);
 }
 
 void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 {
-
 	//Comment the following line before start coding...
-//	panic("not implemented yet");
-	syscall(SYS_allocate_user_mem, virtual_address, size, 0, 0, 0);
-	return;
+	//panic("not implemented yet");
+	syscall(SYS_allocate_user_mem,virtual_address,size,0,0,0);
 }
 
