@@ -330,7 +330,6 @@ void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 	return ;
 }
 
-
 /*2023*/
 //TODO: [PROJECT'23.MS1 - #3] [2] SYSTEM CALLS - Implement these system calls
 void* sys_sbrk(int increment)

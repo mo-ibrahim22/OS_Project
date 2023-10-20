@@ -65,7 +65,7 @@ int		sys_calculate_pages_tobe_removed_ready_exit(uint32 WS_or_MEMORY_flag);
 void 	sys_scarce_memory();
 
 /*2024*/ //Dynamic Allocator
-void* 	sys_sbrk(int increment);
+void*sys_sbrk(int increment);
 //******************
 
 //User Heap

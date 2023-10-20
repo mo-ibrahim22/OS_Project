@@ -17,7 +17,7 @@ enum
 	DA_BF,
 	DA_WF
 };
-
+struct MemBlock_LIST blockList;
 LIST_HEAD(MemBlock_LIST, BlockMetaData);
 
 struct BlockMetaData
