@@ -220,19 +220,19 @@ void *alloc_block_NF(uint32 size)
 void Handle_Case_If_The_Block_Is_First_Block(struct BlockMetaData * selected_block ,struct BlockMetaData * next_block )
 {
 	if(next_block->is_free==0)
-			{
-				selected_block->is_free=1;
-			}
-			else
-			{
-				selected_block->is_free=1;
-				selected_block->size+= next_block->size;
-				struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
-				selected_block->prev_next_info.le_next=next_of_next_block;
-				next_block->is_free=0;
-				next_block->size=0;
-				next_block=NULL;
-			}
+	{
+		selected_block->is_free=1;
+	}
+	else
+	{
+		selected_block->is_free=1;
+		selected_block->size+= next_block->size;
+		struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
+		selected_block->prev_next_info.le_next=next_of_next_block;
+		next_block->is_free=0;
+		next_block->size=0;
+		next_block=NULL;
+	}
 }
 void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_block , struct BlockMetaData * prev_block)
 {
