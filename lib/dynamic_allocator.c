@@ -105,14 +105,12 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 void *alloc_block_FF(uint32 size)
 {
-
 	if(size==0)
 		return NULL;
 
     uint8 is_last_block_free=0;
     uint32 size_of_last_block;
     struct BlockMetaData * last_Block;
-
 	struct BlockMetaData * cr_Block = LIST_FIRST(&blockList);
 	uint32 meta_data_size = sizeOfMetaData();
 	int is_block_allocated=0;
@@ -123,9 +121,8 @@ void *alloc_block_FF(uint32 size)
 		is_last_block_free=cr_Block->is_free;
 		size_of_last_block=cr_Block->size;
 	    last_Block=cr_Block;
-
 		uint32 current_block_size = cr_Block->size; // block to allocate in
-		total_size_to_be_allocated= size+meta_data_size;
+		total_size_to_be_allocated= (uint32)size+(uint32)meta_data_size;
 		uint8 is_current_block_free= cr_Block->is_free;
 
 		/*current_block_size=9;
@@ -135,27 +132,24 @@ void *alloc_block_FF(uint32 size)
 		{
 			if(total_size_to_be_allocated==current_block_size)
 			{
-				cprintf("%s\n","sssssssss1");
 				cr_Block->is_free=0;
 				is_block_allocated=1;
-				return (void*) (uint32)cr_Block+meta_data_size;
+				return (void*) (cr_Block+1);
 			}
 			else if(total_size_to_be_allocated<current_block_size)
 			{
-				cprintf("%s\n","sssssssss2");
 				//--> allocate space
 				//--> modify meta data
 				//create meta data for free space
-				 uint32 remaing_space_size = (uint32)((unsigned int)current_block_size-(unsigned int)total_size_to_be_allocated);
-				 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+total_size_to_be_allocated);
+				 uint32 remaing_space_size = (uint32)((uint32)current_block_size-(uint32)total_size_to_be_allocated);
+				 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+(uint32)total_size_to_be_allocated);
 				 remaining_space->is_free=1;
 				 remaining_space->size=remaing_space_size;
-
-
+				 LIST_INSERT_AFTER(&blockList,cr_Block,remaining_space);
 				 cr_Block->size=total_size_to_be_allocated;
 				 cr_Block->is_free=0;
 				 is_block_allocated=1;
-				 return   (void*)(uint32)(cr_Block+meta_data_size);
+				 return   (void*)(cr_Block+1);
 			}
 		}
 		cr_Block = LIST_NEXT(cr_Block);
@@ -163,18 +157,15 @@ void *alloc_block_FF(uint32 size)
 
     if(is_block_allocated==0)
 	{
-		cprintf("%s\n","sssssssss3");
 		if(is_last_block_free==1)
 		{
-			cprintf("%s\n","sssssssss444");
-			uint32 space_to_sbrk = total_size_to_be_allocated-size_of_last_block;
+			uint32 space_to_sbrk = (uint32)total_size_to_be_allocated-(uint32)size_of_last_block;
 			void* adrs =  sbrk(space_to_sbrk);
 			if(adrs!=(void*)-1)
 			{
-				cprintf("%s\n","sssssssss444llllllllllllllllllllllllllllfdfdsfasf");
 				last_Block->is_free=0;
 				last_Block->size =total_size_to_be_allocated;
-				return last_Block+meta_data_size;
+				return (void*)(last_Block+1);
 			}
 			return NULL;
 		}
@@ -184,17 +175,13 @@ void *alloc_block_FF(uint32 size)
 			void* adrs = sbrk(total_size_to_be_allocated);
 			if(adrs!=(void*)-1)
 			{
-				cprintf("%s\n","sssssssss5555");
-				cprintf("%s\n","sssssssss89789798");
 				struct BlockMetaData * block_in_extended_area =(struct BlockMetaData*)adrs;
 				block_in_extended_area->is_free=0;
 				block_in_extended_area->size=total_size_to_be_allocated;
 				LIST_INSERT_TAIL(&blockList,block_in_extended_area);
-				return (void*)((uint32)adrs+meta_data_size);
+				return (void*)(adrs+1);
 			}
 			return NULL;
-			/*struct BlockMetaData * First_Block = LIST_FIRST(&blockList);
-			  First_Block->size += total_size_to_be_allocated;*/
 		}
 	}
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
@@ -229,13 +216,128 @@ void *alloc_block_NF(uint32 size)
 	return NULL;
 }
 
+
+void Handle_Case_If_The_Block_Is_First_Block(struct BlockMetaData * selected_block ,struct BlockMetaData * next_block )
+{
+	if(next_block->is_free==0)
+			{
+				selected_block->is_free=1;
+			}
+			else
+			{
+				selected_block->is_free=1;
+				selected_block->size+= next_block->size;
+				struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
+				selected_block->prev_next_info.le_next=next_of_next_block;
+				next_block->is_free=0;
+				next_block->size=0;
+				next_block=NULL;
+			}
+}
+void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_block , struct BlockMetaData * prev_block)
+{
+	if(prev_block->is_free==0)
+	{
+		selected_block->is_free=1;
+	}
+	else
+	{
+		prev_block->size+= selected_block->size;
+		prev_block->prev_next_info.le_next=NULL;
+		selected_block->is_free=0;
+		selected_block->size=0;
+		selected_block=NULL;
+	}
+}
+void Handle_Case_If_Previous_And_Next_are_Full(struct BlockMetaData * selected_block)
+{
+	selected_block->is_free=1;
+}
+void Handle_Case_If_Previous_And_Next_are_Free(struct BlockMetaData * selected_block ,struct BlockMetaData * prev_block ,struct BlockMetaData * next_block)
+{
+	struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
+	prev_block->size+=(selected_block->size+next_block->size);
+	prev_block->prev_next_info.le_next=next_of_next_block;
+	selected_block->is_free=0;
+	selected_block->size=0;
+	next_block->is_free=0;
+	next_block->size=0;
+	selected_block=NULL;
+	next_block=NULL;
+}
+void Handle_Case_If_Only_Next_Is_Free(struct BlockMetaData * selected_block , struct BlockMetaData * next_block)
+{
+	uint32 size_of_next_block = next_block->size;
+	struct BlockMetaData * block = LIST_NEXT(next_block);
+	selected_block->is_free=1;
+	selected_block->size += size_of_next_block;
+	selected_block->prev_next_info.le_next = block;
+	next_block->is_free=0;
+	next_block->size=0;
+	next_block=NULL;
+}
+void Handle_Case_If_Only_Previous_Is_Free(struct BlockMetaData * selected_block,struct BlockMetaData * prev_block ,struct BlockMetaData * next_block)
+{
+	prev_block->size += selected_block->size;
+	prev_block->prev_next_info.le_next=next_block;
+	selected_block->is_free=0;
+	selected_block->size=0;
+	selected_block=NULL;
+}
+
 //===================================================
 // [8] FREE BLOCK WITH COALESCING:
 //===================================================
 void free_block(void *va)
 {
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-	panic("free_block is not implemented yet");
+	//panic("free_block is not implemented yet");
+	uint32 meta_data_size = sizeOfMetaData();
+	if(!va) // if the address is NUll then return
+	{
+		return ;
+	}
+    // pre defined data to use
+	uint32 address_of_block = (uint32)va-(uint32)meta_data_size;
+	struct BlockMetaData * selected_block =(struct BlockMetaData*)address_of_block;
+	struct BlockMetaData * prev_block = LIST_PREV(selected_block);
+	struct BlockMetaData * next_block = LIST_NEXT(selected_block);
+	struct BlockMetaData * first_block = LIST_FIRST(&blockList);
+	struct BlockMetaData * last_block = LIST_LAST(&blockList);
+	// handling of corner case :  if the block already free then return
+    if(selected_block->is_free==1)
+    	return;
+    // handling of all cases
+	if(selected_block==first_block)
+	{
+		Handle_Case_If_The_Block_Is_First_Block(selected_block,next_block);
+		return;
+	}
+	else if(selected_block==last_block)
+	{
+		Handle_Case_If_The_Block_Is_Last_Block(selected_block,prev_block);
+		return;
+	}
+	else if(prev_block->is_free==0 && next_block->is_free==0)
+	{
+		Handle_Case_If_Previous_And_Next_are_Full(selected_block);
+		return ;
+	}
+	else if(prev_block->is_free==0 && next_block->is_free==1)
+	{
+		Handle_Case_If_Only_Next_Is_Free(selected_block ,next_block);
+		return;
+	}
+	else if(prev_block->is_free==1 && next_block->is_free==0)
+	{
+		Handle_Case_If_Only_Previous_Is_Free(selected_block,prev_block,next_block);
+		return;
+	}
+	else if (prev_block->is_free==1 && next_block->is_free==1 )
+	{
+		Handle_Case_If_Previous_And_Next_are_Free(selected_block,prev_block,next_block);
+		return;
+	}
 }
 
 //=========================================
