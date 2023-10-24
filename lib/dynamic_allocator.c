@@ -349,15 +349,18 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 	// corner cases
 	if(va!=NULL &&new_size==0)
 	{
+		cprintf("now here  1\n");
 		free_block(va);
 		return NULL;
 	}
 	else if(va==NULL &&new_size!=0)
 	{
+		cprintf("now here  2\n");
 		return alloc_block_FF(new_size);
 	}
 	else if(va==NULL && new_size==0)
 	{
+		cprintf("now here  3\n");
 		return alloc_block_FF(0);
 	}
 
@@ -373,15 +376,21 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 	uint32 actual_old_size = old_size-meta_data_size;
 
 	if(new_size==actual_old_size)
-		return va;
-
-	else if(new_size>actual_old_size)
 	{
+		cprintf("now here  4\n");
+		return va;
+	}
+
+	else if(new_size>actual_old_size) // new size bigger than me
+	{
+		cprintf("now here  5\n");
 		uint32 taken_size = new_size - actual_old_size;
-		if(is_next_free == 1)
+		if(is_next_free == 1)   // next is freee
 		{
-			if(next_block_size==taken_size)
+			cprintf("now here  6\n");
+			if(next_block_size==taken_size) // fit and taken size equal next block size
 			{
+				cprintf("now here  7\n");
 				struct BlockMetaData * next_of_next = LIST_NEXT(next_block);
 				selected_block->size = new_size+meta_data_size;
 				next_block->size=0;
@@ -390,8 +399,9 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				selected_block->prev_next_info.le_next=next_of_next;
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
-			else if(next_block_size>taken_size)
+			else if(next_block_size>taken_size) // fit and taken size is smaller than next_block size
 			{
+				cprintf("now here  8\n");
 				selected_block->size = new_size+meta_data_size;
 				next_block->size = 0;
 				next_block->is_free=0;
@@ -403,28 +413,51 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				next_block=NULL;
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
-			else
+			else // next not fit me
 			{
+				cprintf("now here  9\n");
 				free_block(va);
 				return alloc_block_FF(new_size);
 			}
 		}
 
-		else
+		else // next block is not free
 		{
+			cprintf("now here  10\n");
 			free_block(va);
 			return alloc_block_FF(new_size);
 		}
 	}
-	else
+	else  // new size smaller than old size
 	{
-		selected_block->size = new_size+meta_data_size;
-		uint32 selected_block_new_size = new_size+meta_data_size;
-		uint32  free_block_address = (uint32) selected_block + selected_block_new_size;
-		struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
-		free_block->is_free=1;
-		free_block->size = old_size-selected_block_new_size;
-		LIST_INSERT_AFTER(&blockList,selected_block,free_block);
-		return (void*)((uint32)selected_block + meta_data_size);
+		cprintf("now here  11\n");
+		if(is_next_free==0) // next is not free
+		{
+			cprintf("now here  12\n");
+			selected_block->size = new_size+meta_data_size;
+			uint32 selected_block_new_size = new_size+meta_data_size;
+			uint32  free_block_address = (uint32) selected_block + selected_block_new_size;
+			struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
+			free_block->is_free=1;
+			free_block->size = old_size-selected_block_new_size;
+			LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+			return (void*)((uint32)selected_block + meta_data_size);
+		}
+
+		else // next is free
+		{
+			cprintf("now here  13\n");
+			selected_block->size = new_size+meta_data_size;
+			uint32 free_size = actual_old_size-new_size;
+			uint32 new_address = (uint32)next_block -(uint32)free_size;
+			next_block->is_free=0;
+			next_block->size=0;
+			LIST_REMOVE(&blockList, next_block);
+			struct BlockMetaData * new_block =(struct BlockMetaData*)new_address;
+			new_block->is_free=1;
+			new_block->size=next_block_size+free_size;
+			LIST_INSERT_AFTER(&blockList,selected_block,new_block);
+			return (void*)((uint32)selected_block + meta_data_size);
+		}
 	}
 }
