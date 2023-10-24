@@ -458,5 +458,4 @@ int execute_command(char *command_string)
 	{
 		return CMD_INVALID;
 	}
-	return 0;
 }
