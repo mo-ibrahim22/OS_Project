@@ -115,9 +115,9 @@ void *alloc_block_FF(uint32 size)
 	uint32 meta_data_size = sizeOfMetaData();
 	int is_block_allocated=0;
 	uint32 total_size_to_be_allocated;
+
 	while(cr_Block)
 	{
-
 		is_last_block_free=cr_Block->is_free;
 		size_of_last_block=cr_Block->size;
 	    last_Block=cr_Block;
@@ -193,9 +193,93 @@ void *alloc_block_FF(uint32 size)
 //=========================================
 void *alloc_block_BF(uint32 size)
 {
-	//TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
-	panic("alloc_block_BF is not implemented yet");
-	return NULL;
+    if (size == 0)
+        return NULL;
+
+    uint8 is_last_block_free = 0;
+    uint32 size_of_last_block;
+    struct BlockMetaData *last_Block = NULL;
+    struct BlockMetaData *cr_Block = LIST_FIRST(&blockList);
+    uint32 meta_data_size = sizeOfMetaData();
+    int is_block_allocated = 0;
+    uint32 total_size_to_be_allocated;
+    struct BlockMetaData *best_fit_block = NULL;
+    uint32 best_fit_block_size = (uint32)DYN_ALLOC_MAX_SIZE;
+
+    while (cr_Block)
+    {
+        is_last_block_free = cr_Block->is_free;
+        size_of_last_block = cr_Block->size;
+        last_Block = cr_Block;
+
+        uint32 current_block_size = cr_Block->size;
+        total_size_to_be_allocated = (uint32)size + (uint32)meta_data_size;
+        uint8 is_current_block_free = cr_Block->is_free;
+
+        if (is_current_block_free == 1)
+        {
+            if (total_size_to_be_allocated == current_block_size)
+            {
+                cr_Block->is_free = 0;
+                is_block_allocated = 1;
+                return (void *)((uint32)cr_Block + meta_data_size);
+            }
+            else if (total_size_to_be_allocated < current_block_size)
+            {
+                if (current_block_size < best_fit_block_size)
+                {
+                    best_fit_block = cr_Block;
+                    best_fit_block_size = current_block_size;
+                }
+            }
+        }
+        cr_Block = LIST_NEXT(cr_Block);
+    }
+
+    if (is_block_allocated == 0)
+    {
+        if (best_fit_block != NULL)
+        {
+            if (best_fit_block_size > total_size_to_be_allocated + meta_data_size)
+            {
+                struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)best_fit_block + total_size_to_be_allocated);
+                remaining_space->is_free = 1;
+                remaining_space->size = best_fit_block_size - total_size_to_be_allocated;
+                LIST_INSERT_AFTER(&blockList, best_fit_block, remaining_space);
+                best_fit_block->size = total_size_to_be_allocated;
+            }
+            best_fit_block->is_free = 0;
+            return (void *)((uint32)best_fit_block + meta_data_size);
+        }
+        else if (is_last_block_free == 1)
+        {
+            uint32 space_to_sbrk = total_size_to_be_allocated - size_of_last_block;
+            void *adrs = sbrk(space_to_sbrk);
+            if (adrs != (void *)-1)
+            {
+                last_Block->is_free = 0;
+                last_Block->size = total_size_to_be_allocated;
+                return (void *)((uint32)last_Block + meta_data_size);
+            }
+        }
+        else
+        {
+            void *adrs = sbrk(total_size_to_be_allocated);
+            if (adrs != (void *)-1)
+            {
+                struct BlockMetaData *block_in_extended_area = (struct BlockMetaData *)adrs;
+                block_in_extended_area->is_free = 0;
+                block_in_extended_area->size = total_size_to_be_allocated;
+                LIST_INSERT_TAIL(&blockList, block_in_extended_area);
+                return (void *)((uint32)adrs + meta_data_size);
+            }
+        }
+    }
+
+    //TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
+    //panic("alloc_block_BF is not implemented yet");
+
+    return NULL;
 }
 
 //=========================================
@@ -385,7 +469,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 	{
 		cprintf("now here  5\n");
 		uint32 taken_size = new_size - actual_old_size;
-		if(is_next_free == 1)   // next is freee
+		if(is_next_free == 1)   // next is free
 		{
 			cprintf("now here  6\n");
 			if(next_block_size==taken_size) // fit and taken size equal next block size
