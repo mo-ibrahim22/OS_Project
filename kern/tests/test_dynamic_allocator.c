@@ -1181,8 +1181,8 @@ void test_realloc_block_FF()
 	//TODO: [PROJECT'23.MS1 - #9] [3] DYNAMIC ALLOCATOR - test_realloc_block_FF()
 	//CHECK MISSING CASES AND TRY TO TEST THEM !
 
-	int eval = 0;
-	bool is_correct;
+	int eval = 0; // evalution rate
+	bool is_correct; // if still true then still check if false then wrong
 
 	int initAllocatedSpace = 3*Mega;
 	initialize_dynamic_allocator(KERNEL_HEAP_START, initAllocatedSpace);
@@ -1192,7 +1192,7 @@ void test_realloc_block_FF()
 	//[1] Test calling realloc with VA = NULL. It should call malloc
 	//====================================================================//
 	/* Try to allocate set of blocks with different sizes*/
-	cprintf("1: Test calling realloc with VA = NULL.[10%]\n\n") ;
+	cprintf("1: Test calling realloc with VA = NULL.[10%]\n\n") ; // case number 2 in our code
 	is_correct = 1;
 	int totalSizes = 0;
 	for (int i = 0; i < numOfAllocs; ++i)
@@ -1211,7 +1211,7 @@ void test_realloc_block_FF()
 		for (int j = 0; j < allocCntPerSize; ++j)
 		{
 			actualSize = allocSizes[i] - sizeOfMetaData();
-			va = startVAs[idx] = realloc_block_FF(NULL, actualSize);
+			va = startVAs[idx] = realloc_block_FF(NULL, actualSize);  // va is the value to check
 			midVAs[idx] = va + actualSize/2 ;
 			endVAs[idx] = va + actualSize - sizeof(short);
 			//Check returned va
@@ -1239,7 +1239,7 @@ void test_realloc_block_FF()
 	*(endVAs[idx]) = idx ;
 
 	//====================================================================//
-	/* Check stored data inside each allocated block*/
+	/* Check stored data inside each allocated block*/   // all in same block
 	for (int i = 0; i < idx; ++i)
 	{
 		if (*(startVAs[i]) != i || *(midVAs[i]) != i ||	*(endVAs[i]) != i)
@@ -1248,18 +1248,19 @@ void test_realloc_block_FF()
 
 	if (is_correct)
 	{
-		eval += 10;
+		eval += 10;     // if reach to this condition then pass 2nd case in our code
 	}
 
 	//====================================================================//
-	//[2] Test krealloc by passing size = 0. It should call free
+	//[2] Test realloc by passing size = 0. It should call free
 	//====================================================================//
-	cprintf("2: Test calling realloc with SIZE = 0.[10%]\n\n") ;
+	cprintf("2: Test calling realloc with SIZE = 0.[10%]\n\n") ;   // case number 1 in our code
 	is_correct = 1;
 
 	//Free set of blocks with different sizes (first block of each size)
 	for (int i = 0; i < numOfAllocs; ++i)
 	{
+		//uint32 block_size = get_block_size(startVAs[i*allocCntPerSize]) ;
 		va = realloc_block_FF(startVAs[i*allocCntPerSize], 0);
 		uint32 block_size = get_block_size(startVAs[i*allocCntPerSize]) ;
 		if (block_size != allocSizes[i])
@@ -1271,37 +1272,50 @@ void test_realloc_block_FF()
 			panic("test_realloc_block_FF #6.%d: it should return NULL.", i);
 	}
 
-	//test calling it with NULL & ZERO
-	va = realloc_block_FF(NULL, 0);
-	if(va != NULL)
-		panic("test_realloc_block_FF #7: it should return NULL.");
-	//====================================================================//
+
 	/* Check stored data inside each allocated block*/
 	for (int i = 0; i < idx; ++i)
 	{
 		if (i % allocCntPerSize == 0)
 			continue;
 		if (*(startVAs[i]) != i || *(midVAs[i]) != i ||	*(endVAs[i]) != i)
-			panic("test_realloc_block_FF #8.%d: WRONG! content of the block is not correct. Expected %d",i, i);
+			panic("test_realloc_block_FF #7.%d: WRONG! content of the block is not correct. Expected %d",i, i);
 	}
-
 	if (is_correct)
 	{
 		eval += 10;
 	}
 
+
 	//====================================================================//
-	//[3] Test realloc with increased sizes
+		//[3] Test calling realloc with va = NULL & size = ZERO. It should return NULL
 	//====================================================================//
-	cprintf("3: Test calling realloc with increased sizes [50%].\n\n") ;
+	cprintf("3: Test calling realloc with va = NULL & size = 0.[10%]\n\n") ;
+	is_correct = 1;
+
+	va = realloc_block_FF(NULL, 0);
+	if(va != NULL)
+		panic("test_realloc_block_FF #8: it should return NULL.");
+	if (is_correct)
+	{
+		eval += 10;
+	}
+	//====================================================================//
+	//[4] Test realloc with increased sizes
+	//====================================================================//
+	cprintf("4: Test calling realloc with increased sizes [50%].\n\n") ;
 	int blockIndex, block_size, block_status, old_size, new_size, expected_size, newBlockIndex;
 	void* expected_va = NULL;
-	//[3.1] reallocate in same place (NO relocate - split)
-	cprintf("	3.1: reallocate in same place (NO relocate - split)\n\n") ;
+	//[4.1] reallocate in same place (NO relocate - split)   // case number 6 in our code
+	cprintf("	4.1: reallocate in same place (NO relocate - split)\n\n") ;
 	is_correct = 1;
 	{
 		blockIndex = 4*allocCntPerSize - 1 ;
+		/*cprintf("selected block size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
+		cprintf("next block size = %d \n" , get_block_size(startVAs[4*allocCntPerSize]));*/
+
 		new_size = allocSizes[3] /*12+16 B*/ + allocSizes[4]/2 /*2KB/2*/ - sizeOfMetaData();
+		/*cprintf("new size = %d \n" , new_size);*/
 		va = realloc_block_FF(startVAs[blockIndex], new_size);
 
 		//check return address
@@ -1338,15 +1352,18 @@ void test_realloc_block_FF()
 	}
 	if (is_correct)
 	{
-		eval += 25;
+		eval += 10;
 	}
 
-	//[3.2] reallocate in same place (NO relocate - NO split)
-	cprintf("	3.2: reallocate in same place (NO relocate - NO split)\n\n") ;
+	//[4.2] reallocate in same place (NO relocate - next block is free and fit me)  // case number 5 in our code
+	cprintf("	4.2: reallocate in same place (NO relocate - next block is free and fit me)\n\n") ;
 	is_correct = 1;
 	{
-		blockIndex = 4*allocCntPerSize - 1 ;
-		new_size = allocSizes[3] /*12+16B + 2KB/2*/ + allocSizes[4]/2 /*2KB/2*/ - sizeOfMetaData();
+		blockIndex = 2*allocCntPerSize - 1 ;
+		/*cprintf("		selected block size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
+		cprintf("		next block size = %d \n" , get_block_size(startVAs[2*allocCntPerSize]));*/
+		new_size = get_block_size(startVAs[blockIndex]) - sizeOfMetaData() + get_block_size(startVAs[2*allocCntPerSize]);
+		/*cprintf("		new size = %d \n" , new_size);*/
 		va = realloc_block_FF(startVAs[blockIndex], new_size);
 
 		//check return address
@@ -1357,6 +1374,7 @@ void test_realloc_block_FF()
 		}
 		//check reallocated block size & status
 		block_size = get_block_size(startVAs[blockIndex]) ;
+		//cprintf("selected block new size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
 		if (block_size != new_size + sizeOfMetaData())
 		{
 			is_correct = 0;
@@ -1383,13 +1401,260 @@ void test_realloc_block_FF()
 	}
 	if (is_correct)
 	{
-		eval += 25;
+		eval += 10;
 	}
 
-	//[4] Test realloc with decreased sizes
-	cprintf("4: Test calling realloc with decreased sizes.[30%]\n\n") ;
+	//[4.3] reallocate in same place (NO relocate - NO split)  // case number 4 in our code
+	cprintf("	4.3: reallocate in same place (NO relocate - NO split)\n\n") ;
+	is_correct = 1;
+	{
+		blockIndex = 4*allocCntPerSize - 1 ;
+		new_size = allocSizes[3] /*12+16B + 2KB/2*/ + allocSizes[4]/2 /*2KB/2*/ - sizeOfMetaData();
+		//cprintf("		selected block size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
+		//cprintf("		new size = %d \n" , new_size);
+
+		va = realloc_block_FF(startVAs[blockIndex], new_size);
+
+		//check return address
+		if(va == NULL || (va != startVAs[blockIndex]))
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #11.1: WRONG REALLOC - it return wrong address. Expected %x, Actual %x\n", startVAs[blockIndex] ,va);
+		}
+		//check reallocated block size & status
+		block_size = get_block_size(startVAs[blockIndex]) ;
+		if (block_size != new_size + sizeOfMetaData())
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #11.2: WRONG REALLOC! block size after realloc is not correct. Expected %d, Actual %d\n",new_size + sizeOfMetaData(), block_size);
+		}
+		block_status = is_free_block(startVAs[blockIndex]) ;
+		if (block_status != 0)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #11.3: WRONG REALLOC! block status (is_free) not equal 0 after realloc.\n");
+		}
+		//check vanishing block (if any)
+		if (get_block_size(startVAs[blockIndex+1]) != 0 || is_free_block(startVAs[blockIndex+1]) != 0)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #11.4: WRONG REALLOC! make sure to ZEROing the size & is_free values of the vanishing block.\n");
+		}
+		//check content of reallocated block
+		if (*(startVAs[blockIndex]) != blockIndex || *(midVAs[blockIndex]) != blockIndex ||	*(endVAs[blockIndex]) != blockIndex)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #11.5: WRONG REALLOC! content of the block is not correct. Expected %d\n", blockIndex);
+		}
+	}
+	if (is_correct)
+	{
+		eval += 10;
+	}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		//[4.4] reallocate in other place using ff (relocate - NO split) case number 7 in our code
+		cprintf("	4.4: reallocate in other place using ff (relocate - NO split)\n\n") ;
+		is_correct = 1;
+		{
+			blockIndex = 3*allocCntPerSize - 1 ;
+			/*cprintf("block index = %d\n",blockIndex);
+			cprintf("block number start isssssssss :  %d\n",*(startVAs[blockIndex])) ;
+			cprintf("block number mid   isssssssss :  %d\n",*(midVAs[blockIndex])) ;
+			cprintf("block number end   isssssssss :  %d\n",*(endVAs[blockIndex])) ;*/
+			new_size = get_block_size(startVAs[blockIndex]) + get_block_size(startVAs[blockIndex + 1]) + 10;
+			/*cprintf("		selected block size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
+			cprintf("		new size = %d \n" , new_size);*/
+			va = startVAs[0] =realloc_block_FF(startVAs[blockIndex], new_size);
+			midVAs[0] = va + new_size/2 ;
+			endVAs[0] = va + new_size - sizeof(short);
+
+
+			//check on free            //------> we free block 599 and merge it with 600
+			block_size = get_block_size(startVAs[blockIndex]) ;
+			if (block_size != allocSizes[2]+allocSizes[3])
+			{
+				is_correct = 0;
+				cprintf("test_free_block #12.1: WRONG FREE! block size after free is not correct. Expected %d, Actual %d\n",allocSizes[2] + allocSizes[3],block_size);
+			}
+			block_status = is_free_block(startVAs[blockIndex]) ;
+			if (block_status != 1)
+			{
+				is_correct = 0;
+				cprintf("test_free_block #12.2: WRONG FREE! block status (is_free) not equal 1 after freeing.\n");
+			}
+			if (get_block_size(startVAs[blockIndex+1]) != 0 || is_free_block(startVAs[blockIndex+1]) != 0)
+			{
+				is_correct = 0;
+				cprintf("test_free_block #12.3: WRONG FREE! make sure to ZEROing the size & is_free values of the vanishing block.\n");
+			}
+
+
+			// check on  allocate      //------> we allocated block 0
+
+			//check return address
+			if(va == NULL || (va != startVAs[0]))
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #12.4: WRONG REALLOC - it return wrong address. Expected %x, Actual %x\n", startVAs[0] ,va);
+			}
+			//check reallocated block size & status
+			block_size = get_block_size(startVAs[0]) ;
+			if (block_size != new_size + sizeOfMetaData())
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #12.5: WRONG REALLOC! block size after realloc is not correct. Expected %d, Actual %d\n",new_size + sizeOfMetaData(), block_size);
+			}
+			// check is block is not free
+			block_status = is_free_block(startVAs[0]) ;
+			if (block_status != 0)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #12.6: WRONG REALLOC! block status (is_free) not equal 0 after realloc.\n");
+			}
+
+			//check content of reallocated block
+			if (*(startVAs[0]) != 0 || *(midVAs[0]) != 0 ||	*(endVAs[0]) != 0)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #12.6: WRONG REALLOC! content of the block is not correct. Expected %d\n", 0);
+			}
+
+
+			if (*(startVAs[blockIndex]) != blockIndex || *(midVAs[blockIndex]) != blockIndex ||	*(endVAs[blockIndex]) != blockIndex)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #12.7: WRONG REALLOC! content of the block is not correct. Expected %d\n", blockIndex);
+			}
+		}
+		if (is_correct)
+		{
+			eval += 10;
+		}
+
+
+		/*// just for test
+            cprintf("the size of meta data = %d\n" ,sizeOfMetaData());
+			for (int i = 0; i < idx; ++i)
+			{
+				if (i % allocCntPerSize == 0)
+				{
+					cprintf("block # %d:-\n" , i);
+					cprintf("size = %d\n" , get_block_size(startVAs[i]));
+					cprintf("status = %d\n" , is_free_block(startVAs[i]));
+
+				}
+
+			}*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		//[4.5] reallocate in other place using ff (relocate - NO split) case number 8 in our code ( next is not free)
+		cprintf("	4.5: reallocate in other place using ff (relocate - NO split)(next is not free)\n\n") ;
+		is_correct = 1;
+		{
+			blockIndex = 1*allocCntPerSize + 50 ;
+			/*cprintf("block index = %d\n",blockIndex);
+   		    cprintf("block number start isssssssss :  %d\n",*(startVAs[blockIndex])) ;
+			cprintf("block number mid   isssssssss :  %d\n",*(midVAs[blockIndex])) ;
+     		cprintf("block number end   isssssssss :  %d\n",*(endVAs[blockIndex])) ;*/
+
+     		/*cprintf("//////////\n");
+     		cprintf("block # %d:-\n" , 3*allocCntPerSize-1);
+			cprintf("size = %d\n" , get_block_size(startVAs[3*allocCntPerSize-1]));
+			cprintf("status = %d\n" , is_free_block(startVAs[3*allocCntPerSize-1]));*/
+			new_size = get_block_size(startVAs[blockIndex]) + 100;
+			/*cprintf("		selected block size = %d \n" , get_block_size(startVAs[blockIndex])- sizeOfMetaData());
+			cprintf("		new size = %d \n" , new_size);*/
+			va = startVAs[3*allocCntPerSize-1] =realloc_block_FF(startVAs[blockIndex], new_size);
+			midVAs[3*allocCntPerSize-1] = va + new_size/2 ;
+			endVAs[3*allocCntPerSize-1] = va + new_size - sizeof(short);
+
+
+			//check on free            //------> we free block 599 and merge it with 600
+			block_size = get_block_size(startVAs[blockIndex]) ;
+			if (block_size != allocSizes[1])
+			{
+				is_correct = 0;
+				cprintf("test_free_block #13.1: WRONG FREE! block size after free is not correct. Expected %d, Actual %d\n",allocSizes[1] ,block_size);
+			}
+			block_status = is_free_block(startVAs[blockIndex]) ;
+			if (block_status != 1)
+			{
+				is_correct = 0;
+				cprintf("test_free_block #13.2: WRONG FREE! block status (is_free) not equal 1 after freeing.\n");
+			}
+
+			// check on  allocate      //------> we allocated block 0
+
+			//check return address
+			if(va == NULL || (va != startVAs[3*allocCntPerSize-1]))
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #13.3: WRONG REALLOC - it return wrong address. Expected %x, Actual %x\n", startVAs[3*allocCntPerSize-1] ,va);
+			}
+			//check reallocated block size & status
+			block_size = get_block_size(startVAs[3*allocCntPerSize-1]) ;
+			if (block_size != new_size + sizeOfMetaData())
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #13.4: WRONG REALLOC! block size after realloc is not correct. Expected %d, Actual %d\n",new_size + sizeOfMetaData(), block_size);
+			}
+			// check is block is not free
+			block_status = is_free_block(startVAs[3*allocCntPerSize-1]) ;
+			if (block_status != 0)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #13.5: WRONG REALLOC! block status (is_free) not equal 0 after realloc.\n");
+			}
+
+			//check content of reallocated block
+			if (*(startVAs[3*allocCntPerSize-1]) != 0 || *(midVAs[3*allocCntPerSize-1]) != 0 ||	*(endVAs[3*allocCntPerSize-1]) != 0)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #13.6: WRONG REALLOC! content of the block is not correct. Expected %d\n", 0);
+			}
+
+
+			if (*(startVAs[blockIndex]) != blockIndex || *(midVAs[blockIndex]) != blockIndex ||	*(endVAs[blockIndex]) != blockIndex)
+			{
+				is_correct = 0;
+				cprintf("test_realloc_block_FF #13.7: WRONG REALLOC! content of the block is not correct. Expected %d\n", blockIndex);
+			}
+
+
+
+			/*cprintf("block # %d:-\n" , 3*allocCntPerSize-1);
+			cprintf("size = %d\n" , get_block_size(startVAs[3*allocCntPerSize-1]));
+			cprintf("status = %d\n" , is_free_block(startVAs[3*allocCntPerSize-1]));*/
+		}
+		if (is_correct)
+		{
+			eval += 10;
+		}
+
+
+		/*// just for test
+			cprintf("the size of meta data = %d\n" ,sizeOfMetaData());
+			for (int i = 0; i < idx; ++i)
+			{
+				if (i % allocCntPerSize == 0)
+				{
+					cprintf("block # %d:-\n" , i);
+					cprintf("size = %d\n" , get_block_size(startVAs[i]));
+					cprintf("status = %d\n" , is_free_block(startVAs[i]));
+
+				}
+
+			}*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//[5] Test realloc with decreased sizes
+	cprintf("5: Test calling realloc with decreased sizes.[20%]\n\n") ;
 	//[4.1] next block is full (NO coalesce)
-	cprintf("	4.1: next block is full (NO coalesce)\n\n") ;
+	cprintf("	5.1: next block is full (NO coalesce)\n\n") ;
 	is_correct = 1;
 	{
 		blockIndex = 0*allocCntPerSize + 1; /*4KB*/
@@ -1434,7 +1699,7 @@ void test_realloc_block_FF()
 	}
 	if (is_correct)
 	{
-		eval += 30;
+		eval += 10;
 	}
 
 

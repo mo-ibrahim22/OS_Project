@@ -115,9 +115,9 @@ void *alloc_block_FF(uint32 size)
 	uint32 meta_data_size = sizeOfMetaData();
 	int is_block_allocated=0;
 	uint32 total_size_to_be_allocated;
-
 	while(cr_Block)
 	{
+
 		is_last_block_free=cr_Block->is_free;
 		size_of_last_block=cr_Block->size;
 	    last_Block=cr_Block;
@@ -275,7 +275,6 @@ void *alloc_block_BF(uint32 size)
             }
         }
     }
-
     //TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
     //panic("alloc_block_BF is not implemented yet");
 
@@ -431,20 +430,20 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 {
 
 	// corner cases
-	if(va!=NULL &&new_size==0)
+	if(va!=NULL &&new_size==0)    // case number 1
 	{
-		cprintf("now here  1\n");
+		//cprintf("now here  1\n");
 		free_block(va);
 		return NULL;
 	}
-	else if(va==NULL &&new_size!=0)
+	else if(va==NULL &&new_size!=0) /// case number2
 	{
-		cprintf("now here  2\n");
+		//cprintf("now here  2\n");
 		return alloc_block_FF(new_size);
 	}
-	else if(va==NULL && new_size==0)
+	else if(va==NULL && new_size==0) // case number 3
 	{
-		cprintf("now here  3\n");
+		//cprintf("now here  3\n");
 		return alloc_block_FF(0);
 	}
 
@@ -459,22 +458,22 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 	uint8 is_next_free = next_block->is_free;
 	uint32 actual_old_size = old_size-meta_data_size;
 
-	if(new_size==actual_old_size)
+	if(new_size==actual_old_size)  // case number 4
 	{
-		cprintf("now here  4\n");
+		//cprintf("now here  4\n");
 		return va;
 	}
 
 	else if(new_size>actual_old_size) // new size bigger than me
 	{
-		cprintf("now here  5\n");
+
 		uint32 taken_size = new_size - actual_old_size;
-		if(is_next_free == 1)   // next is free
+		if(is_next_free == 1)   // next is freee
 		{
-			cprintf("now here  6\n");
-			if(next_block_size==taken_size) // fit and taken size equal next block size
+
+			if(next_block_size==taken_size) // fit and taken size equal next block size   // case number 5
 			{
-				cprintf("now here  7\n");
+				//cprintf("now here  5\n");
 				struct BlockMetaData * next_of_next = LIST_NEXT(next_block);
 				selected_block->size = new_size+meta_data_size;
 				next_block->size=0;
@@ -483,9 +482,9 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				selected_block->prev_next_info.le_next=next_of_next;
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
-			else if(next_block_size>taken_size) // fit and taken size is smaller than next_block size
+			else if(next_block_size>taken_size) // fit and taken size is smaller than next_block size // case number 6
 			{
-				cprintf("now here  8\n");
+				//cprintf("now here  6\n");
 				selected_block->size = new_size+meta_data_size;
 				next_block->size = 0;
 				next_block->is_free=0;
@@ -497,27 +496,27 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				next_block=NULL;
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
-			else // next not fit me
+			else // next not fit me   // case number 7
 			{
-				cprintf("now here  9\n");
+				//cprintf("now here  7\n");
 				free_block(va);
 				return alloc_block_FF(new_size);
 			}
 		}
 
-		else // next block is not free
+		else // next block is not free   // case number 8
 		{
-			cprintf("now here  10\n");
+			//cprintf("now here  8\n");
 			free_block(va);
 			return alloc_block_FF(new_size);
 		}
 	}
 	else  // new size smaller than old size
 	{
-		cprintf("now here  11\n");
-		if(is_next_free==0) // next is not free
+
+		if(is_next_free==0) // next is not free  // case number 9
 		{
-			cprintf("now here  12\n");
+			//cprintf("now here  9\n");
 			selected_block->size = new_size+meta_data_size;
 			uint32 selected_block_new_size = new_size+meta_data_size;
 			uint32  free_block_address = (uint32) selected_block + selected_block_new_size;
@@ -528,9 +527,9 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			return (void*)((uint32)selected_block + meta_data_size);
 		}
 
-		else // next is free
+		else // next is free  // case number 10
 		{
-			cprintf("now here  13\n");
+			cprintf("now here  10\n");
 			selected_block->size = new_size+meta_data_size;
 			uint32 free_size = actual_old_size-new_size;
 			uint32 new_address = (uint32)next_block -(uint32)free_size;
