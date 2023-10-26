@@ -203,8 +203,8 @@ void *alloc_block_BF(uint32 size)
     uint32 meta_data_size = sizeOfMetaData();
     int is_block_allocated = 0;
     uint32 total_size_to_be_allocated;
-    struct BlockMetaData *best_fit_block = NULL;
-    uint32 best_fit_block_size = (uint32)DYN_ALLOC_MAX_SIZE;
+    struct BlockMetaData *bf_block = NULL;
+    uint32 best_size = (uint32)DYN_ALLOC_MAX_SIZE;
 
     while (cr_Block)
     {
@@ -226,10 +226,10 @@ void *alloc_block_BF(uint32 size)
             }
             else if (total_size_to_be_allocated < current_block_size)
             {
-                if (current_block_size < best_fit_block_size)
+                if (current_block_size < best_size)
                 {
-                    best_fit_block = cr_Block;
-                    best_fit_block_size = current_block_size;
+                	bf_block = cr_Block;
+                    best_size = current_block_size;
                 }
             }
         }
@@ -238,18 +238,18 @@ void *alloc_block_BF(uint32 size)
 
     if (is_block_allocated == 0)
     {
-        if (best_fit_block != NULL)
+        if (bf_block != NULL)
         {
-            if (best_fit_block_size > total_size_to_be_allocated + meta_data_size)
+            if (best_size > total_size_to_be_allocated + meta_data_size)
             {
-                struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)best_fit_block + total_size_to_be_allocated);
+                struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)bf_block + total_size_to_be_allocated);
                 remaining_space->is_free = 1;
-                remaining_space->size = best_fit_block_size - total_size_to_be_allocated;
-                LIST_INSERT_AFTER(&blockList, best_fit_block, remaining_space);
-                best_fit_block->size = total_size_to_be_allocated;
+                remaining_space->size = best_size - total_size_to_be_allocated;
+                LIST_INSERT_AFTER(&blockList, bf_block, remaining_space);
+                bf_block->size = total_size_to_be_allocated;
             }
-            best_fit_block->is_free = 0;
-            return (void *)((uint32)best_fit_block + meta_data_size);
+            bf_block->is_free = 0;
+            return (void *)((uint32)bf_block + meta_data_size);
         }
         else if (is_last_block_free == 1)
         {
@@ -314,7 +314,9 @@ void Handle_Case_If_The_Block_Is_First_Block(struct BlockMetaData * selected_blo
 		selected_block->prev_next_info.le_next=next_of_next_block;
 		next_block->is_free=0;
 		next_block->size=0;
-		next_block=NULL;
+		//next_block=NULL;
+		LIST_REMOVE(&blockList, next_block);
+
 	}
 }
 void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_block , struct BlockMetaData * prev_block)
@@ -329,7 +331,9 @@ void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_bloc
 		prev_block->prev_next_info.le_next=NULL;
 		selected_block->is_free=0;
 		selected_block->size=0;
-		selected_block=NULL;
+		//selected_block=NULL;
+		LIST_REMOVE(&blockList, selected_block);
+
 	}
 }
 void Handle_Case_If_Previous_And_Next_are_Full(struct BlockMetaData * selected_block)
@@ -345,8 +349,12 @@ void Handle_Case_If_Previous_And_Next_are_Free(struct BlockMetaData * selected_b
 	selected_block->size=0;
 	next_block->is_free=0;
 	next_block->size=0;
-	selected_block=NULL;
-	next_block=NULL;
+	//selected_block=NULL;
+	//next_block=NULL;
+	LIST_REMOVE(&blockList, selected_block);
+	LIST_REMOVE(&blockList, next_block);
+
+
 }
 void Handle_Case_If_Only_Next_Is_Free(struct BlockMetaData * selected_block , struct BlockMetaData * next_block)
 {
@@ -357,7 +365,9 @@ void Handle_Case_If_Only_Next_Is_Free(struct BlockMetaData * selected_block , st
 	selected_block->prev_next_info.le_next = block;
 	next_block->is_free=0;
 	next_block->size=0;
-	next_block=NULL;
+	//next_block=NULL;
+	LIST_REMOVE(&blockList, next_block);
+
 }
 void Handle_Case_If_Only_Previous_Is_Free(struct BlockMetaData * selected_block,struct BlockMetaData * prev_block ,struct BlockMetaData * next_block)
 {
@@ -365,7 +375,8 @@ void Handle_Case_If_Only_Previous_Is_Free(struct BlockMetaData * selected_block,
 	prev_block->prev_next_info.le_next=next_block;
 	selected_block->is_free=0;
 	selected_block->size=0;
-	selected_block=NULL;
+	//selected_block=NULL;
+	LIST_REMOVE(&blockList, selected_block);
 }
 
 //===================================================
@@ -478,7 +489,8 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				selected_block->size = new_size+meta_data_size;
 				next_block->size=0;
 				next_block->is_free=0;
-				next_block=NULL;
+				//next_block=NULL;
+				LIST_REMOVE(&blockList, next_block);
 				selected_block->prev_next_info.le_next=next_of_next;
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
@@ -493,7 +505,8 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				free_block->is_free=1;
 				free_block->size=next_block_size-taken_size;
 				LIST_INSERT_AFTER(&blockList,selected_block,free_block);
-				next_block=NULL;
+				//next_block=NULL;
+				LIST_REMOVE(&blockList, next_block);
 				return (void*)((uint32)selected_block + meta_data_size);
 			}
 			else // next not fit me   // case number 7
@@ -535,6 +548,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			uint32 new_address = (uint32)next_block -(uint32)free_size;
 			next_block->is_free=0;
 			next_block->size=0;
+			//next_block=NULL;
 			LIST_REMOVE(&blockList, next_block);
 			struct BlockMetaData * new_block =(struct BlockMetaData*)new_address;
 			new_block->is_free=1;
