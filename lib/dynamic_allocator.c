@@ -142,13 +142,15 @@ void *alloc_block_FF(uint32 size)
 				//--> modify meta data
 				//create meta data for free space
 				 uint32 remaing_space_size = (uint32)((uint32)current_block_size-(uint32)total_size_to_be_allocated);
-				 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+(uint32)total_size_to_be_allocated);
-				 remaining_space->is_free=1;
-				 remaining_space->size=remaing_space_size;
-				 LIST_INSERT_AFTER(&blockList,cr_Block,remaining_space);
-				 cr_Block->size=total_size_to_be_allocated;
-				 cr_Block->is_free=0;
-				 is_block_allocated=1;
+				 if(remaing_space_size >= meta_data_size){
+					 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+(uint32)total_size_to_be_allocated);
+					 remaining_space->is_free=1;
+					 remaining_space->size=remaing_space_size;
+					 LIST_INSERT_AFTER(&blockList,cr_Block,remaining_space);
+					 cr_Block->size=total_size_to_be_allocated;
+				 }
+				cr_Block->is_free=0;
+				is_block_allocated=1;
 				 return   (void*)((uint32)cr_Block+meta_data_size);
 			}
 		}
@@ -242,13 +244,16 @@ void *alloc_block_BF(uint32 size)
         {
             if (best_size > total_size_to_be_allocated + meta_data_size)
             {
-                struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)bf_block + total_size_to_be_allocated);
-                remaining_space->is_free = 1;
-                remaining_space->size = best_size - total_size_to_be_allocated;
-                LIST_INSERT_AFTER(&blockList, bf_block, remaining_space);
-                bf_block->size = total_size_to_be_allocated;
+            	uint32 remaining_size = best_size - total_size_to_be_allocated;
+            	if(remaining_size >= meta_data_size){
+					struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)bf_block + total_size_to_be_allocated);
+					remaining_space->is_free = 1;
+					remaining_space->size = best_size - total_size_to_be_allocated;
+					LIST_INSERT_AFTER(&blockList, bf_block, remaining_space);
+					bf_block->size = total_size_to_be_allocated;
+            	}
+				bf_block->is_free = 0;
             }
-            bf_block->is_free = 0;
             return (void *)((uint32)bf_block + meta_data_size);
         }
         else if (is_last_block_free == 1)
@@ -504,7 +509,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 				struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
 				free_block->is_free=1;
 				free_block->size=next_block_size-taken_size;
-				//LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+				LIST_INSERT_AFTER(&blockList,selected_block,free_block);
 				//next_block=NULL;
 				LIST_REMOVE(&blockList, next_block);
 				return (void*)((uint32)selected_block + meta_data_size);
@@ -536,7 +541,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
 			free_block->is_free=1;
 			free_block->size = old_size-selected_block_new_size;
-			//LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+			LIST_INSERT_AFTER(&blockList,selected_block,free_block);
 			return (void*)((uint32)selected_block + meta_data_size);
 		}
 
@@ -553,7 +558,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			struct BlockMetaData * new_block =(struct BlockMetaData*)new_address;
 			new_block->is_free=1;
 			new_block->size=next_block_size+free_size;
-			//LIST_INSERT_AFTER(&blockList,selected_block,new_block);
+			LIST_INSERT_AFTER(&blockList,selected_block,new_block);
 			return (void*)((uint32)selected_block + meta_data_size);
 		}
 	}
