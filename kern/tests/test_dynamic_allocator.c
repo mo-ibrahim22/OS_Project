@@ -1716,15 +1716,19 @@ void test_realloc_block_FF()
 	cprintf("	5.2: next block is free Coalesce)\n\n") ;
 	is_correct = 1;
 	{
-		blockIndex = 5*allocCntPerSize - 1;
+		blockIndex = 5*allocCntPerSize - 1; //999
 		old_size = allocSizes[4]; /*2KB*/
 		new_size = old_size - 1*kilo - sizeOfMetaData(); // 1KB - sizeOfMetaData()
-		//cprintf("Block Index = %d\n" , blockIndex);
-		//cprintf("Start address = %d\n" , *(startVAs[blockIndex]));
-		//cprintf("Mid address = %d\n" , *(midVAs[blockIndex]));
-		//cprintf("End address = %d\n" , *(endVAs[blockIndex]));
+//		cprintf("Block Index = %d\n" , blockIndex);
+//		cprintf("Start address = %d\n" , *(startVAs[blockIndex]));
+//		cprintf("Mid address = %d\n" , *(midVAs[blockIndex]));
+//		cprintf("End address = %d\n" , *(endVAs[blockIndex]));
 		va = realloc_block_FF(startVAs[blockIndex], new_size);
-
+		midVAs[blockIndex] = va + new_size * (uint32)0.5 ;
+//		cprintf("Block Index = %d\n" , blockIndex);
+//		cprintf("Start address = %d\n" , *(startVAs[blockIndex]));
+//		cprintf("Mid address = %d\n" , *(midVAs[blockIndex]));
+//		cprintf("End address = %d\n" , *(endVAs[blockIndex]));
 		//check return address
 		if(va == NULL || (va != startVAs[blockIndex]))
 		{

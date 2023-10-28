@@ -517,16 +517,30 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			else // next not fit me   // case number 7
 			{
 				//cprintf("now here  7\n");
-				free_block(va);
-				return alloc_block_FF(new_size);
+				if(alloc_block_FF(new_size)!=NULL)
+				{
+					free_block(va);
+					return alloc_block_FF(new_size);
+				}
+				else
+				{
+					return NULL;
+				}
 			}
 		}
 
 		else // next block is not free   // case number 8
 		{
 			//cprintf("now here  8\n");
-			free_block(va);
-			return alloc_block_FF(new_size);
+			if(alloc_block_FF(new_size)!=NULL)
+			{
+				free_block(va);
+				return alloc_block_FF(new_size);
+			}
+			else
+			{
+				return NULL;
+			}
 		}
 	}
 	else  // new size smaller than old size
