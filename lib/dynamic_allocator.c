@@ -117,7 +117,6 @@ void *alloc_block_FF(uint32 size)
 	uint32 total_size_to_be_allocated;
 	while(cr_Block)
 	{
-
 		is_last_block_free=cr_Block->is_free;
 		size_of_last_block=cr_Block->size;
 	    last_Block=cr_Block;
@@ -504,14 +503,19 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			else if(next_block_size>taken_size) // fit and taken size is smaller than next_block size // case number 6
 			{
 				//cprintf("now here  6\n");
-				selected_block->size = new_size+meta_data_size;
+				selected_block->size += next_block_size;
+				uint32 free_block_size = next_block_size-taken_size;
+				if(free_block_size>meta_data_size)
+				{
+					selected_block->size = new_size+meta_data_size;
+					uint32  free_block_address = (uint32)((uint32)next_block+(uint32)taken_size);
+					struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
+					free_block->is_free=1;
+					free_block->size=next_block_size-taken_size;
+					LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+				}
 				next_block->size = 0;
 				next_block->is_free=0;
-				uint32  free_block_address = (uint32)((uint32)next_block+(uint32)taken_size);
-				struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
-				free_block->is_free=1;
-				free_block->size=next_block_size-taken_size;
-				LIST_INSERT_AFTER(&blockList,selected_block,free_block);
 				//next_block=NULL;
 				LIST_REMOVE(&blockList, next_block);
 				return (void*)((uint32)selected_block + meta_data_size);
@@ -550,17 +554,20 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 	}
 	else  // new size smaller than old size
 	{
-
 		if(is_next_free==0) // next is not free  // case number 9
 		{
 			//cprintf("now here  9\n");
-			selected_block->size = new_size+meta_data_size;
 			uint32 selected_block_new_size = new_size+meta_data_size;
-			uint32  free_block_address = (uint32) selected_block + selected_block_new_size;
-			struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
-			free_block->is_free=1;
-			free_block->size = old_size-selected_block_new_size;
-			LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+			uint32 size_of_free_block = old_size-selected_block_new_size;
+			if(size_of_free_block>meta_data_size)
+			{
+				uint32  free_block_address = (uint32) selected_block + selected_block_new_size;
+				selected_block->size = new_size+meta_data_size;
+				struct BlockMetaData * free_block =(struct BlockMetaData*)free_block_address;
+				free_block->is_free=1;
+				free_block->size = old_size-selected_block_new_size;
+				LIST_INSERT_AFTER(&blockList,selected_block,free_block);
+			}
 			return (void*)((uint32)selected_block + meta_data_size);
 		}
 
