@@ -142,7 +142,8 @@ void *alloc_block_FF(uint32 size)
 				//--> modify meta data
 				//create meta data for free space
 				 uint32 remaing_space_size = (uint32)((uint32)current_block_size-(uint32)total_size_to_be_allocated);
-				 if(remaing_space_size >= meta_data_size){
+				 if(remaing_space_size > meta_data_size)
+				 {
 					 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+(uint32)total_size_to_be_allocated);
 					 remaining_space->is_free=1;
 					 remaining_space->size=remaing_space_size;
@@ -245,10 +246,11 @@ void *alloc_block_BF(uint32 size)
             if (best_size > total_size_to_be_allocated + meta_data_size)
             {
             	uint32 remaining_size = best_size - total_size_to_be_allocated;
-            	if(remaining_size >= meta_data_size){
+            	if(remaining_size > meta_data_size)
+            	{
 					struct BlockMetaData *remaining_space = (struct BlockMetaData *)((uint32)bf_block + total_size_to_be_allocated);
 					remaining_space->is_free = 1;
-					remaining_space->size = best_size - total_size_to_be_allocated;
+					remaining_space->size = remaining_size;
 					LIST_INSERT_AFTER(&blockList, bf_block, remaining_space);
 					bf_block->size = total_size_to_be_allocated;
             	}
@@ -517,10 +519,11 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			else // next not fit me   // case number 7
 			{
 				//cprintf("now here  7\n");
-				if(alloc_block_FF(new_size)!=NULL)
+				void* check1=alloc_block_FF(new_size);
+				if(check1!=NULL)
 				{
 					free_block(va);
-					return alloc_block_FF(new_size);
+					return check1;
 				}
 				else
 				{
@@ -532,10 +535,11 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 		else // next block is not free   // case number 8
 		{
 			//cprintf("now here  8\n");
-			if(alloc_block_FF(new_size)!=NULL)
+			void* check2=alloc_block_FF(new_size);
+			if(check2!=NULL)
 			{
 				free_block(va);
-				return alloc_block_FF(new_size);
+				return check2;
 			}
 			else
 			{
