@@ -519,6 +519,7 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 			else // next not fit me   // case number 7
 			{
 				//cprintf("now here  7\n");
+				//check if i can find a place or not
 				void* check1=alloc_block_FF(new_size);
 				if(check1!=NULL)
 				{
