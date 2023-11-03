@@ -398,11 +398,13 @@ struct Env * CreateEnv(int number_of_arguments, char **arguments)
 
 			break;
 		}
+#if USE_KHEAP == 0
 		if(pageWSSize > __PWS_MAX_SIZE)
 		{
 			cprintf("ERROR: size of WS must be less than or equal to %d... aborting", __PWS_MAX_SIZE);
 			return NULL;
 		}
+#endif
 		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 		{
 			if (LRUSecondListSize > pageWSSize - 1)
@@ -443,16 +445,18 @@ struct Env * CreateEnv(int number_of_arguments, char **arguments)
 
 int command_run_program(int number_of_arguments, char **arguments)
 {
-
 	//[1] Create and initialize a new environment for the program to be run
 	struct Env *env = CreateEnv(number_of_arguments, arguments);
 
 	if(env == NULL) return 0;
 	cprintf("\nEnvironment Id= %d\n",env->env_id);
+
 	numOfKheapVACalls = 0;
+
 	//[2] Run the created environment by adding it to the "ready" queue then invoke the scheduler to execute it
 	sched_new_env(env);
 	sched_run_env(env->env_id);
+
 	return 0;
 }
 

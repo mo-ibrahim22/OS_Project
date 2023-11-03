@@ -7,7 +7,6 @@
 
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
 {
-
 	//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialize_kheap_dynamic_allocator()
 	//Initialize the dynamic allocator of kernel heap with the given start address, size & limit
 	//All pages in the given range should be allocated
@@ -123,7 +122,7 @@ void kexpand(uint32 newSize)
 
 void *krealloc(void *virtual_address, uint32 new_size)
 {
-	//TODO: [PROJECT'23.MS2 - BONUS] [1] KERNEL HEAP - krealloc()
+	//TODO: [PROJECT'23.MS2 - BONUS#1] [1] KERNEL HEAP - krealloc()
 	// Write your code here, remove the panic and write your code
 	return NULL;
 	panic("krealloc() is not implemented yet...!!");
