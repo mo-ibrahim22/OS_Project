@@ -51,8 +51,7 @@ static void sys_cputc(const char c)
 
 // Read a character from the system console.
 // Returns the character.
-static int
-sys_cgetc(void)
+static int sys_cgetc(void)
 {
 	int c;
 
@@ -515,6 +514,10 @@ void* sys_sbrk(int increment)
 
 }
 
+uint32 sys_hard_limit(){
+	return curenv->env_hard_limit;
+}
+
 /**************************************************************************/
 /************************* SYSTEM CALLS HANDLER ***************************/
 /**************************************************************************/
@@ -537,6 +540,9 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		sys_free_user_mem(a1,a2);
 		break;
 	//=====================================================================
+	case SYS_hard_limit:
+		return sys_hard_limit();
+		break;
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
 		return 0;
