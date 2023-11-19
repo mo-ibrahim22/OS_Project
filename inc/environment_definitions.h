@@ -110,7 +110,9 @@ struct Env {
 	//TODO: [PROJECT'23.MS2 - #07] [2] USER HEAP - initialize of Env: add suitable code here
 
 	//==================================================================================
-
+	uint32 Ustart;
+	uint32 Useg_brk;
+	uint32 Uhard_limit;
 	//================
 	/*WORKING SET*/
 	//================

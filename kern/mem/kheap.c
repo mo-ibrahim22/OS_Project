@@ -75,22 +75,23 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 void* increment_break_pointer(int increment)
 {
-
-	uint32 size_to_increment = (uint32)increment ;
+	cprintf("increment = %d\n",increment);
+	uint32 size_to_increment = (uint32)increment *kilo ;
+	cprintf("increment after = %d\n" , size_to_increment);
 	//cprintf("size to increment = %d\n",size_to_increment);
 	size_to_increment = ROUNDUP(size_to_increment, PAGE_SIZE) ;
 	//cprintf("size to increment after round up = %d\n",size_to_increment);
-	uint32 new_brk = brk_pointer +size_to_increment ;
+	uint32 new_brk = ROUNDUP(brk_pointer, PAGE_SIZE)+size_to_increment ;
 	if(new_brk>hard_limit)
 	{
 		 panic("hard limit has been broken !!\n");
 	}
 	else
 	{
-		//cprintf(" not painc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		//cprintf(" not painc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");  google.com
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer = new_brk ;
-		allocateAndMapFrames(previous_brk_ptr ,size_to_increment) ;
+		allocateAndMapFrames(ROUNDUP(previous_brk_ptr, PAGE_SIZE) ,size_to_increment) ;
 		return (void*)previous_brk_ptr ;
 	}
 }
@@ -98,8 +99,8 @@ void* decrement_break_pointer(int increment)
 {
 	increment*=-1;
 	uint32 size_to_decrement = increment * kilo ;
-	size_to_decrement = ROUNDUP(size_to_decrement, PAGE_SIZE) ;
-	uint32 new_brk = brk_pointer - size_to_decrement ;
+	size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);    //5  ---> 5-(5%4) =4   8   8-(8%4) = 8
+	uint32 new_brk = brk_pointer - size_to_decrement + (size_to_decrement%PAGE_SIZE) ;
 	if(new_brk<dstart_of_kernal_heap)
 	{
 		panic("down of start of kernel heap !!\n");
@@ -128,7 +129,8 @@ void* sbrk(int increment)
 	 }
 	 else if(increment<0)
 	 {
-		 return decrement_break_pointer(increment);
+
+		 return decrement_break_pointer(increment)  ;
 	 }
 
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()

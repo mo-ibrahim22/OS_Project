@@ -18,6 +18,7 @@
 #include <kern/tests/test_working_set.h>
 
 extern uint8 bypassInstrLength ;
+#define kilo (1024)
 
 /*******************************/
 /* STRING I/O SYSTEM CALLS */
@@ -448,6 +449,11 @@ int sys_create_env(char* programName, unsigned int page_WS_size,unsigned int LRU
 	return env->env_id;
 }
 
+uint32 sys_u_hard_limit ()
+{
+	return curenv->Uhard_limit;
+}
+
 //Place a new env into the READY queue
 void sys_run_env(int32 envId)
 {
@@ -483,12 +489,27 @@ void sys_bypassPageFault(uint8 instrLength)
 /* DYNAMIC ALLOCATOR SYSTEM CALLS */
 /**********************************/
 /*2024*/
+
+void dellocateAndUnMapFrame(uint32 StartOfDeallocation , uint32 sizeToDeallocate)
+{
+	uint32 va =StartOfDeallocation - 4*kilo;
+	int cnt = (int)(ROUNDUP(sizeToDeallocate, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+	for(int i=0 ;i<cnt ;i++)
+	{
+	  //unmap frames
+	  unmap_frame(ptr_page_directory ,va);
+	  va -= PAGE_SIZE ;
+	}
+
+}
+
+
 void* sys_sbrk(int increment)
 {
 
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
-	return (void*)-1 ;
+	//return (void*)-1 ;
 	//====================================================
 
 	/*2023*/
@@ -511,9 +532,48 @@ void* sys_sbrk(int increment)
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
 	struct Env* env = curenv;//the current running Environment to adjust its break limit
+	if(increment == 0)
+		return (void*)env->Useg_brk;
 
+	else if(increment > 0)
+	{
+		uint32 new_increment = (uint32)increment;
+		new_increment = ROUNDUP(new_increment,PAGE_SIZE);
+		uint32 old_sbrk = env->Useg_brk;
+		uint32 new_sbrk = ROUNDUP(old_sbrk,PAGE_SIZE) + new_increment;
+
+		new_sbrk = ROUNDUP(new_sbrk,PAGE_SIZE);
+		if(new_sbrk > env->Uhard_limit)
+		{
+			return (void*)-1;
+		}
+		else
+		{
+			env->Useg_brk = new_sbrk;
+			return (void*)old_sbrk;
+		}
+	}
+	else  //increment < 0
+	{
+		increment*=-1;
+		uint32 size_to_decrement = increment * kilo ;
+		size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);
+		uint32 new_sbrk = env->Useg_brk - size_to_decrement + (size_to_decrement%PAGE_SIZE) ;
+		if(new_sbrk < env->Ustart)
+		{
+			return (void*)-1;
+		}
+		else
+		{
+	        dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement);
+			env->Useg_brk = new_sbrk;
+			return (void*)env->Useg_brk;
+		}
+
+	}
 
 }
+
 
 /**************************************************************************/
 /************************* SYSTEM CALLS HANDLER ***************************/
@@ -725,6 +785,9 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 
 	case SYS_check_WS_list:
 		return sys_check_WS_list((uint32*)a1, (int)a2, (uint32)a3, (bool)a4);
+
+	case SYS_u_hard_limit:
+		return sys_u_hard_limit();
 
 	case NSYSCALLS:
 		return 	-E_INVAL;

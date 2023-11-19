@@ -340,6 +340,11 @@ void* sys_sbrk(int increment)
 	 return (void*)-1 ;
 }
 
+uint32 sys_u_hard_limit()
+{
+	return syscall(SYS_u_hard_limit, 0, 0, 0, 0, 0);
+}
+
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
