@@ -28,8 +28,9 @@ int allocateAndMapFrames(uint32 StartOfAllocation , uint32 sizeToAllocate )
 
 void dellocateAndUnMapFrames(uint32 StartOfDeallocation , uint32 sizeToDeallocate)
 {
-	uint32 va =StartOfDeallocation - 4*kilo ;
-	int cnt = (int)(ROUNDUP(sizeToDeallocate, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+	uint32 va =StartOfDeallocation - PAGE_SIZE ;
+	va = ROUNDUP(va, PAGE_SIZE) ;
+	int cnt = (int)(ROUNDUP(sizeToDeallocate, PAGE_SIZE) / (uint32)PAGE_SIZE) ;  // 1
 	for(int i=0 ;i<cnt ;i++)
 	{
 	  //unmap frames
@@ -75,9 +76,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 void* increment_break_pointer(int increment)
 {
-	cprintf("increment = %d\n",increment);
+	//cprintf("increment = %d\n",increment);
 	uint32 size_to_increment = (uint32)increment *kilo ;
-	cprintf("increment after = %d\n" , size_to_increment);
+	//cprintf("increment after = %d\n" , size_to_increment);
 	//cprintf("size to increment = %d\n",size_to_increment);
 	size_to_increment = ROUNDUP(size_to_increment, PAGE_SIZE) ;
 	//cprintf("size to increment after round up = %d\n",size_to_increment);
@@ -92,15 +93,20 @@ void* increment_break_pointer(int increment)
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer = new_brk ;
 		allocateAndMapFrames(ROUNDUP(previous_brk_ptr, PAGE_SIZE) ,size_to_increment) ;
-		return (void*)previous_brk_ptr ;
+		return (void*) ROUNDUP(previous_brk_ptr, PAGE_SIZE) ;
 	}
 }
 void* decrement_break_pointer(int increment)
 {
+	uint32 hint =(uint32)0 ;
 	increment*=-1;
-	uint32 size_to_decrement = increment * kilo ;
-	size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);    //5  ---> 5-(5%4) =4   8   8-(8%4) = 8
-	uint32 new_brk = brk_pointer - size_to_decrement + (size_to_decrement%PAGE_SIZE) ;
+	uint32 size_to_decrement = increment * kilo ;  // 1 kilo
+	if((brk_pointer - size_to_decrement) %PAGE_SIZE==(uint32)0 && brk_pointer%PAGE_SIZE!=(uint32)0)
+	{
+		hint = PAGE_SIZE;
+	}
+	size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);    // 8
+	uint32 new_brk = brk_pointer - size_to_decrement - (size_to_decrement%PAGE_SIZE) ;  //
 	if(new_brk<dstart_of_kernal_heap)
 	{
 		panic("down of start of kernel heap !!\n");
@@ -110,8 +116,8 @@ void* decrement_break_pointer(int increment)
 	{
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer =new_brk ;
-		uint32 startAddressOfDeallocation = previous_brk_ptr ;
-		dellocateAndUnMapFrames(startAddressOfDeallocation ,size_to_decrement) ;
+		uint32 startAddressOfDeallocation = previous_brk_ptr ;   // notmazbooot
+		dellocateAndUnMapFrames(startAddressOfDeallocation ,size_to_decrement+hint) ;
 		return (void*)brk_pointer ;
 	}
 }
