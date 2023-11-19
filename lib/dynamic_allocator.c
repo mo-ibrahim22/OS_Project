@@ -108,6 +108,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 void *alloc_block_FF(uint32 size)
 {
+	//cprintf("i'm in ms1 in allocate irst fit!!!!!\n");
 	if(size==0)
 		return NULL;
 
@@ -138,13 +139,14 @@ void *alloc_block_FF(uint32 size)
 
 		/*current_block_size=9;
 		total_size_to_be_allocated=5;*/
-
+       // cprintf("the current bloc i'm stand in is = %d and my free = %d\n",current_block_size,is_current_block_free);
 		if(is_current_block_free==1)
 		{
 			if(total_size_to_be_allocated==current_block_size)
 			{
 				cr_Block->is_free=0;
 				is_block_allocated=1;
+				//cprintf("i retruned from 111111111111 in allocate first fit\n");
 				return (void*) ((uint32)cr_Block+meta_data_size);
 			}
 			else if(total_size_to_be_allocated<current_block_size)
@@ -163,6 +165,7 @@ void *alloc_block_FF(uint32 size)
 				 }
 				cr_Block->is_free=0;
 				is_block_allocated=1;
+				 //cprintf("i retruned from 222222222222 in allocate first fit\n");
 				 return   (void*)((uint32)cr_Block+meta_data_size);
 			}
 		}
@@ -175,10 +178,12 @@ void *alloc_block_FF(uint32 size)
 		{
 			uint32 space_to_sbrk = (uint32)total_size_to_be_allocated-(uint32)size_of_last_block;
 			void* adrs =  sbrk(space_to_sbrk);
+			//cprintf("address retruned from sbrk = %d\n",adrs);
 			if(adrs!=(void*)-1)
 			{
 				last_Block->is_free=0;
-				last_Block->size =total_size_to_be_allocated;
+				last_Block->size =ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
+				//cprintf("i retruned from 333333 in allocate first fit\n");
 				return (void*)((uint32)last_Block+meta_data_size);
 			}
 			return NULL;
@@ -186,6 +191,7 @@ void *alloc_block_FF(uint32 size)
 
 		else if(is_last_block_free==0)
 		{
+			total_size_to_be_allocated = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
 			void* adrs = sbrk(total_size_to_be_allocated);
 			if(adrs!=(void*)-1)
 			{
@@ -193,6 +199,7 @@ void *alloc_block_FF(uint32 size)
 				block_in_extended_area->is_free=0;
 				block_in_extended_area->size=total_size_to_be_allocated;
 				LIST_INSERT_TAIL(&blockList,block_in_extended_area);
+				//cprintf("i retruned from 444444444 in allocate first fit\n");
 				return (void*)((uint32)adrs+meta_data_size);
 			}
 			return NULL;
@@ -209,6 +216,7 @@ void *alloc_block_BF(uint32 size)
 {
     if (size == 0)
         return NULL;
+
 
     uint8 is_last_block_free = 0;
     uint32 size_of_last_block;
