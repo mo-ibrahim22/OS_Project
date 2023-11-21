@@ -1,5 +1,4 @@
 #include "kheap.h"
-
 #include <inc/memlayout.h>
 #include <inc/dynamic_allocator.h>
 #include "memory_manager.h"
@@ -193,7 +192,6 @@ void* kmalloc(unsigned int size)
     		 int result = get_page_table(ptr_page_directory , va_to_check , &ptr_page_table);
     		 if(result ==TABLE_IN_MEMORY)
     		 {
-
     		//	 cprintf("hereeeeee 4\n");
     			 // get the page of the va
     			 uint32 target_page_address = ptr_page_table[PTX(va_to_check)];

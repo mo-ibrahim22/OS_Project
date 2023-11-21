@@ -120,12 +120,40 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+	//inctst();
+	//return;
 	/*=============================================================================*/
 
 	// Write your code here, remove the panic and write your code
-	panic("allocate_user_mem() is not implemented yet...!!");
+	//panic("allocate_user_mem() is not implemented yet...!!");
+
+
+	/*logic of the function  :
+	   1-set the number of pages to mark  and the start address
+	   2-get the page table of this page
+	   3-get the entry (page) from that page table
+	   4-mark this page
+	   5-update the the address to be the the base address of the next page*/
+
+
+	// set the number of pages to marked and start address
+	int num_of_pages_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+	uint32 base_address_of_each_page = virtual_address ;
+    // mark and update address of the page
+	for(int i=0 ;i<num_of_pages_to_mark ;i++ )
+	{
+		// get the page table
+		uint32  *ptr_page_table =NULL ;   // may change t o **ptr_page_directory
+		int result = get_page_table(e->env_page_directory , base_address_of_each_page , &ptr_page_table);
+		if(result==TABLE_NOT_EXIST)
+		{
+			ptr_page_table =(uint32*) create_page_table(e->env_page_directory ,base_address_of_each_page);
+		}
+		// mark the page
+		ptr_page_table[PTX(base_address_of_each_page)] =ptr_page_table[PTX(base_address_of_each_page)] | (PERM_MARKED);
+		//update the address
+		base_address_of_each_page+=PAGE_SIZE;
+	}
 }
 
 //=====================================

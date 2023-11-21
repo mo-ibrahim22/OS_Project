@@ -16,10 +16,22 @@
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
 	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
-	// Write your code here, remove the panic and write your code
-	panic("env_page_ws_list_create_element() is not implemented yet...!!");
-	return NULL;
+
+	struct WorkingSetElement *new_workingset_element;
+	int size = sizeof(struct WorkingSetElement);
+	new_workingset_element = (struct WorkingSetElement*)kmalloc((uint32)size);
+	if(new_workingset_element == NULL)
+	{
+		panic("Can't allocate this Working Set Element");
+		return NULL;
+	}
+	else
+	{
+		new_workingset_element->virtual_address = virtual_address;
+		return new_workingset_element;
+	}
 }
+
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))

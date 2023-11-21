@@ -374,15 +374,87 @@ void fault_handler(struct Trapframe *tf)
 	{
 		if (userTrap)
 		{
+
 			/*============================================================================================*/
 			//TODO: [PROJECT'23.MS2 - #13] [3] PAGE FAULT HANDLER - Check for invalid pointers
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
+			/*=====================================-=======================================================*/
 
-			/*============================================================================================*/
+			// get page table
+
+			uint32 *ptr_page_table = NULL;
+			get_page_table(faulted_env->env_page_directory,fault_va,&ptr_page_table);
+
+			uint32 permissions = pt_get_page_permissions( faulted_env->env_page_directory, fault_va);
+
+			//
+			//			cprintf("permissions are %d\n\n" , permissions);
+			//			cprintf("Faulted Address %d\n\n" , fault_va);
+
+			//			cprintf("USER LIMIT IS %d\n" , (uint32)USER_LIMIT);
+			//			cprintf("KERNAL BASE IS %d\n" , (uint32)KERNEL_BASE);
+			//			cprintf("KERNAL HEAP MAX IS %d\n" , (uint32)KERNEL_HEAP_MAX);
+			//			cprintf("Read Write Bit%d\n" , permissions & PERM_WRITEABLE);
+			//			cprintf("Present Bit%d\n" , permissions & PERM_PRESENT);
+			//			cprintf("Marked Bit%d\n" , permissions & PERM_MARKED);
+			//
+
+
+
+
+			//cprintf("MARKED BIT = %d\n" , (permissions & PERM_MARKED));
+			//cprintf("READ WRITE BIT = %d\n" , (permissions & PERM_WRITEABLE));
+
+
+//			if(fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP )
+//			{
+//				cprintf("Fault_va in stack\n");
+//
+//			}
+
+//			if(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX)
+//			{
+//				cprintf("Fault_va in heap\n");
+//			}
+
+
+			// first we will check if the fault_va come from access kernel or not
+			//
+			if(fault_va > USER_LIMIT)
+			{
+				//
+				//cprintf("\nKill The environment using Kernel\n");
+				//
+
+				sched_kill_env(faulted_env->env_id);
+			}
+
+			// Second check for read write permissions
+			// first page must exist first then check for read_only
+			if((permissions & PERM_PRESENT) && (permissions & PERM_WRITEABLE) == 0)
+			{
+				//
+				//cprintf("\nKill The environment using R/W\n");
+				//
+
+				sched_kill_env(faulted_env->env_id);
+			}
+
+
+			// Finally check for the Marked Page
+			// 1- must be not present. 2- must be in user heap. 3- must be unmarked.
+			if((permissions & PERM_PRESENT) == 0 && (fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX) && (permissions & PERM_MARKED) == 0)
+			{
+				//
+				//cprintf("\nKill The environment using Marked bit\n");
+				//
+
+				sched_kill_env(faulted_env->env_id);
+			}
+
 		}
-
-		/*2022: Check if fault due to Access Rights */
+/*2022: Check if fault due to Access Rights */
 		int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
 		if (perms & PERM_PRESENT)
 			panic("Page @va=%x is exist! page fault due to violation of ACCESS RIGHTS\n", fault_va) ;

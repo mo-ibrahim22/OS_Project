@@ -1,5 +1,4 @@
 #include <inc/lib.h>
-
 //==================================================================================//
 //============================== GIVEN FUNCTIONS ===================================//
 //==================================================================================//
@@ -33,6 +32,10 @@ void* sbrk(int increment)
 //=================================
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
+uint32 arr_user_va [NUM_OF_UHEAP_PAGES];
+uint32 size_user_va [NUM_OF_UHEAP_PAGES];
+uint32 user_page_status[NUM_OF_UHEAP_PAGES];
+struct  Env currenv ;
 void* malloc(uint32 size)
 {
 	//==============================================================
@@ -42,11 +45,73 @@ void* malloc(uint32 size)
 	//==============================================================
 	//TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
 	// Write your code here, remove the panic and write your code
-	panic("malloc() is not implemented yet...!!");
+	//panic("malloc() is not implemented yet...!!");
+
+	 if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
+	 {
+		// cprintf("I'm here 1  and my  size = %d\n" ,size);
+		void* pointer_ = alloc_block_FF(size);
+		//cprintf("i'm finsihed with  va %d\n", (void *)pointer_);
+		return pointer_;
+	 }
+
+	 else
+	 {
+		 int num_of_page_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+		 uint32 va_to_check = USER_HEAP_START + PAGE_SIZE ;
+		 int cnt = 0 ;
+		 int is_found =0 ;
+		 uint32 base_address;
+		 while(va_to_check<USER_HEAP_MAX)
+		 {
+
+			 if(is_found==1)
+			     break;
+			     uint32 index = (va_to_check / PAGE_SIZE) - ((USER_HEAP_START + PAGE_SIZE) / PAGE_SIZE );
+				 uint32 target_value =  user_page_status[index] ;  // target value = 0 then page is free   else page not free
+
+
+				 if(target_value==(uint32)0)
+				 {
+					 if(cnt == 0){
+						 base_address = va_to_check;
+					 }
+					cnt++;
+				 }
+				 if(cnt==num_of_page_to_mark)
+				 {
+					 is_found=1;
+				 }
+				 if(target_value!=(uint32)0)
+				     cnt=0;
+
+			 va_to_check+=PAGE_SIZE ;
+		 }
+
+		 if(is_found==0)
+		     return NULL ;
+		 else
+		 {
+			 uint32 index_of_base_address = (base_address / PAGE_SIZE) - ((USER_HEAP_START + PAGE_SIZE) / PAGE_SIZE );
+			 for(int i=index_of_base_address ;i < index_of_base_address+cnt ;i++)
+			 {
+				 user_page_status[i]=(uint32)1;
+			 }
+			 for(int i=0 ;i< NUM_OF_UHEAP_PAGES;i++)
+			 {
+				 if(arr_user_va[i]==(uint32)0)
+				 {
+					 arr_user_va[i]=base_address;
+					 size_user_va[i]=ROUNDUP(size, PAGE_SIZE);
+					 break;
+				 }
+			 }
+			 sys_allocate_user_mem(base_address, ROUNDUP(size, PAGE_SIZE));    // don't forget to round in sys_allcate
+		 }
+	 }
 	return NULL;
 	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and	sys_isUHeapPlacementStrategyBESTFIT()
 	//to check the current strategy
-
 }
 
 //=================================
