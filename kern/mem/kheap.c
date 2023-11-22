@@ -40,10 +40,8 @@ void dellocateAndUnMapFrames(uint32 StartOfDeallocation , uint32 sizeToDeallocat
 }
 
 
-
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
 {
-
 	//cprintf("dstart = %d\n",daStart);
 
 	//initialization of the variables ( dstart_of_kernal_heap , brk_pointer ,hard_limit)
@@ -75,31 +73,31 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 void* increment_break_pointer(int increment)
 {
-	//cprintf("increment = %d\n",increment);
-	uint32 size_to_increment = (uint32)increment *kilo ;
+
+
+	uint32 size_to_increment = (uint32)increment ;
 	//cprintf("increment after = %d\n" , size_to_increment);
 	//cprintf("size to increment = %d\n",size_to_increment);
 	size_to_increment = ROUNDUP(size_to_increment, PAGE_SIZE) ;
 	//cprintf("size to increment after round up = %d\n",size_to_increment);
-	uint32 new_brk = ROUNDUP(brk_pointer, PAGE_SIZE)+size_to_increment ;
+	uint32 new_brk = ROUNDUP(brk_pointer, PAGE_SIZE) +size_to_increment ;
 	if(new_brk>hard_limit)
 	{
 		 panic("hard limit has been broken !!\n");
 	}
 	else
 	{
-		//cprintf(" not painc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");  google.com
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer = new_brk ;
 		allocateAndMapFrames(ROUNDUP(previous_brk_ptr, PAGE_SIZE) ,size_to_increment) ;
-		return (void*) ROUNDUP(previous_brk_ptr, PAGE_SIZE) ;
+		return (void*) previous_brk_ptr ;
 	}
 }
 void* decrement_break_pointer(int increment)
 {
 	uint32 hint =(uint32)0 ;
 	increment*=-1;
-	uint32 size_to_decrement = increment * kilo ;  // 1 kilo
+	uint32 size_to_decrement = increment;
 	if((brk_pointer - size_to_decrement) %PAGE_SIZE==(uint32)0 && brk_pointer%PAGE_SIZE!=(uint32)0)
 	{
 		hint = PAGE_SIZE;
@@ -122,22 +120,25 @@ void* decrement_break_pointer(int increment)
 }
 void* sbrk(int increment)
 {
-	//cprintf("sasasasasasasas is in sbrk of the kernal\n");
 	 if(increment==0)
 	 {
+			cprintf("\n==================== IN SBRK WITH 0 ===========================\n");
+
 		 return (void*)brk_pointer ;
 	 }
 	 else if(increment>0)
 	 {
+			cprintf("\n==================== IN SBRK WITH + ===========================\n");
+
 		// cprintf("sasa is in the increment > 0\n");
 		 return increment_break_pointer(increment);
 	 }
 	 else if(increment<0)
 	 {
+			cprintf("\n==================== IN SBRK WITH - ===========================\n");
 
 		 return decrement_break_pointer(increment)  ;
 	 }
-
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
 	/* increment > 0: move the segment break of the kernel to increase the size of its heap,
 	 * 				you should allocate pages and map them into the kernel virtual address space as necessary,
@@ -172,7 +173,6 @@ void* kmalloc(unsigned int size)
      }
      else
      {
-    	// cprintf("i'm here 2\n");
     	 int num_of_page_to_allocate = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
     	 //cprintf("the size is %d\n",size);
     	 //cprintf("the num of pages %d\n",num_of_page_to_allocate);
@@ -294,9 +294,7 @@ void kfree(void* virtual_address)
     			size_va[i]=(uint32)0 ;
     			arr_va[i]=(uint32)0;
     			break ;
-
     		}
-
     	}
 
     	int cnt = (int)(ROUNDUP(target_size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;

@@ -26,7 +26,7 @@ void _main(void)
 		if (LIST_SIZE(&(myEnv->page_WS_list)) >= myEnv->page_WS_max_size)
 			panic("Please increase the WS size");
 	}
-	//	/*Dummy malloc to enforce the UHEAP initializations*/
+	//	/Dummy malloc to enforce the UHEAP initializations/
 	//	malloc(0);
 	/*=================================================*/
 
@@ -70,8 +70,11 @@ void _main(void)
 			byteArr = (char *) ptr_allocations[0];
 			byteArr[0] = minByte ;
 			byteArr[lastIndexOfByte] = maxByte ;
+
 			expectedNumOfFrames = 2 /*+1 table already created in malloc due to marking the allocated pages*/ ;
 			actualNumOfFrames = (freeFrames - sys_calculate_free_frames()) ;
+
+			cprintf("actualNumOfFrames = %d\n", actualNumOfFrames);
 			if (actualNumOfFrames < expectedNumOfFrames)
 				panic("Wrong fault handler: pages are not loaded successfully into memory/WS. Expected diff in frames at least = %d, actual = %d\n", expectedNumOfFrames, actualNumOfFrames);
 
@@ -79,8 +82,8 @@ void _main(void)
 			found = sys_check_WS_list(expectedVAs, 2, 0, 2);
 			if (found != 1) panic("malloc: page is not added to WS");
 		}
-		//cprintf("4\n");
 
+		//cprintf("4\n");
 		//2 MB
 		{
 			freeFrames = sys_calculate_free_frames() ;

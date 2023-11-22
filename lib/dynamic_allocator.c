@@ -105,15 +105,18 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
-
+int cnt = 0;
 void *alloc_block_FF(uint32 size)
 {
+    cnt++;
+	//print_blocks_list(blockList);
 	//cprintf("i'm in ms1 in allocate irst fit!!!!!\n");
 	if(size==0)
 		return NULL;
 
 	if (!is_initialized)
 	{
+
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
 		//get new break since it's page aligned! thus, the size can be more than the required one
@@ -121,8 +124,8 @@ void *alloc_block_FF(uint32 size)
 		initialize_dynamic_allocator(da_start, da_break - da_start);
 	}
 
-    uint8 is_last_block_free=0;
-    uint32 size_of_last_block;
+    uint8 is_last_block_free=0;        // for keep tracking
+    uint32 size_of_last_block;         // for keep tracking
     struct BlockMetaData * last_Block;
 	struct BlockMetaData * cr_Block = LIST_FIRST(&blockList);
 	uint32 meta_data_size = sizeOfMetaData();
@@ -130,6 +133,7 @@ void *alloc_block_FF(uint32 size)
 	uint32 total_size_to_be_allocated;
 	while(cr_Block)
 	{
+
 		is_last_block_free=cr_Block->is_free;
 		size_of_last_block=cr_Block->size;
 	    last_Block=cr_Block;
@@ -137,16 +141,11 @@ void *alloc_block_FF(uint32 size)
 		total_size_to_be_allocated= (uint32)size+(uint32)meta_data_size;
 		uint8 is_current_block_free= cr_Block->is_free;
 
-		/*current_block_size=9;
-		total_size_to_be_allocated=5;*/
-       // cprintf("the current bloc i'm stand in is = %d and my free = %d\n",current_block_size,is_current_block_free);
 		if(is_current_block_free==1)
 		{
 			if(total_size_to_be_allocated==current_block_size)
 			{
 				cr_Block->is_free=0;
-				is_block_allocated=1;
-				//cprintf("i retruned from 111111111111 in allocate first fit\n");
 				return (void*) ((uint32)cr_Block+meta_data_size);
 			}
 			else if(total_size_to_be_allocated<current_block_size)
@@ -154,18 +153,19 @@ void *alloc_block_FF(uint32 size)
 				//--> allocate space
 				//--> modify meta data
 				//create meta data for free space
-				 uint32 remaing_space_size = (uint32)((uint32)current_block_size-(uint32)total_size_to_be_allocated);
+				 uint32 remaing_space_size =(uint32)current_block_size-(uint32)total_size_to_be_allocated;
 				 if(remaing_space_size > meta_data_size)
 				 {
 					 struct BlockMetaData * remaining_space =(struct BlockMetaData*)((uint32)cr_Block+(uint32)total_size_to_be_allocated);
 					 remaining_space->is_free=1;
 					 remaining_space->size=remaing_space_size;
-					 LIST_INSERT_AFTER(&blockList,cr_Block,remaining_space);
 					 cr_Block->size=total_size_to_be_allocated;
+					 LIST_INSERT_AFTER(&blockList,cr_Block,remaining_space);
 				 }
-				cr_Block->is_free=0;
-				is_block_allocated=1;
-				 //cprintf("i retruned from 222222222222 in allocate first fit\n");
+				 cr_Block->is_free=0;
+				 //cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
+				 //print_blocks_list(blockList);
+
 				 return   (void*)((uint32)cr_Block+meta_data_size);
 			}
 		}
@@ -177,13 +177,29 @@ void *alloc_block_FF(uint32 size)
 		if(is_last_block_free==1)
 		{
 			uint32 space_to_sbrk = (uint32)total_size_to_be_allocated-(uint32)size_of_last_block;
+
 			void* adrs =  sbrk(space_to_sbrk);
-			//cprintf("address retruned from sbrk = %d\n",adrs);
 			if(adrs!=(void*)-1)
 			{
+				uint32 rounded_space = ROUNDUP(space_to_sbrk, PAGE_SIZE) ;
+				uint32 total_size_of_next_block = rounded_space - space_to_sbrk;
+				if(total_size_of_next_block > meta_data_size)
+				 {
+					 struct BlockMetaData * nextblock =(struct BlockMetaData*)((uint32)last_Block+(uint32)total_size_to_be_allocated);
+					 nextblock->is_free=1;
+					 nextblock->size=total_size_of_next_block;
+					 LIST_INSERT_TAIL(&blockList,nextblock);
+
+				 }
 				last_Block->is_free=0;
-				last_Block->size =ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
-				//cprintf("i retruned from 333333 in allocate first fit\n");
+				last_Block->size =total_size_to_be_allocated;
+				//cprintf("I'm  returned from here   44444444444444\n");
+				//
+								//cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
+									//print_blocks_list(blockList);
+
+								//
+
 				return (void*)((uint32)last_Block+meta_data_size);
 			}
 			return NULL;
@@ -191,16 +207,27 @@ void *alloc_block_FF(uint32 size)
 
 		else if(is_last_block_free==0)
 		{
-			total_size_to_be_allocated = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
+
+			uint32 rounded_space = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
 			void* adrs = sbrk(total_size_to_be_allocated);
 			if(adrs!=(void*)-1)
 			{
-				struct BlockMetaData * block_in_extended_area =(struct BlockMetaData*)adrs;
-				block_in_extended_area->is_free=0;
-				block_in_extended_area->size=total_size_to_be_allocated;
-				LIST_INSERT_TAIL(&blockList,block_in_extended_area);
-				//cprintf("i retruned from 444444444 in allocate first fit\n");
-				return (void*)((uint32)adrs+meta_data_size);
+				struct BlockMetaData * block_needed =(struct BlockMetaData*)((uint32)last_Block+(uint32)last_Block->size);
+				block_needed->is_free=0;
+				block_needed->size=total_size_to_be_allocated;
+				LIST_INSERT_TAIL(&blockList,block_needed);
+				uint32 total_size_of_next_block = rounded_space - total_size_to_be_allocated ;
+				struct BlockMetaData * nextblock =(struct BlockMetaData*)((uint32)block_needed+(uint32)block_needed->size);
+				nextblock->is_free=1;
+				nextblock->size=total_size_of_next_block;
+				LIST_INSERT_TAIL(&blockList,nextblock);
+				//
+								//cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
+									//print_blocks_list(blockList);
+
+								//
+
+				return (void*)((uint32)block_needed+meta_data_size);
 			}
 			return NULL;
 		}

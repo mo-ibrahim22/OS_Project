@@ -117,12 +117,13 @@ uint32 calculate_required_frames(uint32* page_directory, uint32 sva, uint32 size
 //=====================================
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
+	//cprintf(" the sended address %d\n",virtual_address);
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
 	//inctst();
 	//return;
-	/*=============================================================================*/
+	/*======================================><=======================================*/
 
 	// Write your code here, remove the panic and write your code
 	//panic("allocate_user_mem() is not implemented yet...!!");
@@ -134,7 +135,6 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	   3-get the entry (page) from that page table
 	   4-mark this page
 	   5-update the the address to be the the base address of the next page*/
-
 
 	// set the number of pages to marked and start address
 	int num_of_pages_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;

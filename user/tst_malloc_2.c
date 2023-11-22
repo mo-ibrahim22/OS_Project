@@ -34,7 +34,6 @@ void _main(void)
 	}
 	/*=================================================*/
 
-
 	int eval = 0;
 	bool is_correct = 1;
 	int targetAllocatedSpace = 3*Mega;

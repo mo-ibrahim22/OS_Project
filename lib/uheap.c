@@ -49,17 +49,23 @@ void* malloc(uint32 size)
 
 	 if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
 	 {
+		 //cprintf(" the size========= %d\n", size);
 		// cprintf("I'm here 1  and my  size = %d\n" ,size);
 		void* pointer_ = alloc_block_FF(size);
-		//cprintf("i'm finsihed with  va %d\n", (void *)pointer_);
-		return pointer_;
+
+		return pointer_ ;
 	 }
 
 	 else
 	 {
+		// cprintf("I'm in the else!!!!!!!!!!!!!!!!!!!!!\n");
 		 int num_of_page_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
-		 uint32 va_to_check = USER_HEAP_START + PAGE_SIZE ;
+		 uint32  hardLimt = (uint32) sys_u_hard_limit();
+
+		 uint32 va_to_check = hardLimt + PAGE_SIZE ;
+		// cprintf( "the start address of allocation = %d\n" ,  hardLimt + PAGE_SIZE );
 		 int cnt = 0 ;
+
 		 int is_found =0 ;
 		 uint32 base_address;
 		 while(va_to_check<USER_HEAP_MAX)
@@ -67,7 +73,8 @@ void* malloc(uint32 size)
 
 			 if(is_found==1)
 			     break;
-			     uint32 index = (va_to_check / PAGE_SIZE) - ((USER_HEAP_START + PAGE_SIZE) / PAGE_SIZE );
+			     uint32 index = (va_to_check / PAGE_SIZE) - ((hardLimt + PAGE_SIZE) / PAGE_SIZE );
+			     //cprintf(" the index now = %d\n",index);
 				 uint32 target_value =  user_page_status[index] ;  // target value = 0 then page is free   else page not free
 
 
@@ -92,7 +99,7 @@ void* malloc(uint32 size)
 		     return NULL ;
 		 else
 		 {
-			 uint32 index_of_base_address = (base_address / PAGE_SIZE) - ((USER_HEAP_START + PAGE_SIZE) / PAGE_SIZE );
+			 uint32 index_of_base_address = (base_address / PAGE_SIZE) - ((hardLimt + PAGE_SIZE) / PAGE_SIZE );
 			 for(int i=index_of_base_address ;i < index_of_base_address+cnt ;i++)
 			 {
 				 user_page_status[i]=(uint32)1;
@@ -106,9 +113,20 @@ void* malloc(uint32 size)
 					 break;
 				 }
 			 }
+			// cprintf( "the actual address of allocation = %d\n" ,base_address );
 			 sys_allocate_user_mem(base_address, ROUNDUP(size, PAGE_SIZE));    // don't forget to round in sys_allcate
+			 int cnt1 =0 ;
+
+			 for(int i=0 ;i<NUM_OF_UHEAP_PAGES ;i++)
+			 {
+				 if(user_page_status[i]==1)
+					 cnt1++;
+			 }
+			 //cprintf("cnt1 = %d \n\n" ,cnt1);
+			 return (void*)base_address;
 		 }
 	 }
+
 	return NULL;
 	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and	sys_isUHeapPlacementStrategyBESTFIT()
 	//to check the current strategy

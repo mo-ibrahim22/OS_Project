@@ -490,7 +490,7 @@ void sys_bypassPageFault(uint8 instrLength)
 /**********************************/
 /*2024*/
 
-void dellocateAndUnMapFrame(uint32 StartOfDeallocation , uint32 sizeToDeallocate)
+void dellocateAndUnMapFrame(uint32 StartOfDeallocation , uint32 sizeToDeallocate , uint32 * ptr_env_page_directory)
 {
 	uint32 va =StartOfDeallocation - PAGE_SIZE ;
 	va = ROUNDUP(va, PAGE_SIZE) ;
@@ -498,7 +498,7 @@ void dellocateAndUnMapFrame(uint32 StartOfDeallocation , uint32 sizeToDeallocate
 	for(int i=0 ;i<cnt ;i++)
 	{
 	  //unmap frames
-	  unmap_frame(ptr_page_directory ,va);
+	  unmap_frame(ptr_env_page_directory ,va);
 	  va -= PAGE_SIZE ;
 	}
 }
@@ -537,7 +537,7 @@ void* sys_sbrk(int increment)
 
 	else if(increment > 0)
 	{
-		uint32 new_increment = (uint32)increment * kilo;
+		uint32 new_increment = (uint32)increment;
 		new_increment = ROUNDUP(new_increment,PAGE_SIZE);
 		uint32 old_sbrk = env->Useg_brk;
 		uint32 new_sbrk = ROUNDUP(old_sbrk,PAGE_SIZE) + new_increment;
@@ -557,7 +557,7 @@ void* sys_sbrk(int increment)
 	{
 		uint32 hint =(uint32)0 ;
 		increment*=-1;
-		uint32 size_to_decrement = increment * kilo ;
+		uint32 size_to_decrement = increment ;
 		if((env->Useg_brk - size_to_decrement) %PAGE_SIZE==(uint32)0 && env->Useg_brk%PAGE_SIZE!=(uint32)0)
 		{
 			hint = PAGE_SIZE;
@@ -570,7 +570,7 @@ void* sys_sbrk(int increment)
 		}
 		else
 		{
-	        dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint);
+	        dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint ,env->env_page_directory );
 			env->Useg_brk = new_sbrk;
 			return (void*)env->Useg_brk;
 		}
