@@ -17,8 +17,8 @@ enum
 	DA_BF,
 	DA_WF
 };
-struct MemBlock_LIST blockList;
 LIST_HEAD(MemBlock_LIST, BlockMetaData);
+
 
 struct BlockMetaData
 {
@@ -26,6 +26,8 @@ struct BlockMetaData
 	uint8 is_free;		//is_free block?
 	LIST_ENTRY(BlockMetaData) prev_next_info;	/* linked list links */
 };
+
+struct MemBlock_LIST blockList;
 
 #define sizeOfMetaData() (sizeof(struct BlockMetaData))
 

@@ -108,10 +108,10 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 int cnt = 0;
 void *alloc_block_FF(uint32 size)
 {
-    cnt++;
+    //cnt++;
 	//print_blocks_list(blockList);
-	//cprintf("i'm in ms1 in allocate irst fit!!!!!\n");
-	if(size==0)
+    //cprintf("========IN ALLOC BLOCK WITH SIZE = %d AND CNT = %d====\n", size , cnt);
+        if(size==0)
 		return NULL;
 
 	if (!is_initialized)
@@ -179,6 +179,8 @@ void *alloc_block_FF(uint32 size)
 			uint32 space_to_sbrk = (uint32)total_size_to_be_allocated-(uint32)size_of_last_block;
 
 			void* adrs =  sbrk(space_to_sbrk);
+
+
 			if(adrs!=(void*)-1)
 			{
 				uint32 rounded_space = ROUNDUP(space_to_sbrk, PAGE_SIZE) ;
@@ -199,9 +201,11 @@ void *alloc_block_FF(uint32 size)
 									//print_blocks_list(blockList);
 
 								//
+				//print_blocks_list(blockList);
 
 				return (void*)((uint32)last_Block+meta_data_size);
 			}
+
 			return NULL;
 		}
 
@@ -210,6 +214,9 @@ void *alloc_block_FF(uint32 size)
 
 			uint32 rounded_space = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
 			void* adrs = sbrk(total_size_to_be_allocated);
+			//
+
+			//
 			if(adrs!=(void*)-1)
 			{
 				struct BlockMetaData * block_needed =(struct BlockMetaData*)((uint32)last_Block+(uint32)last_Block->size);
@@ -226,9 +233,11 @@ void *alloc_block_FF(uint32 size)
 									//print_blocks_list(blockList);
 
 								//
+				//print_blocks_list(blockList);
 
 				return (void*)((uint32)block_needed+meta_data_size);
 			}
+
 			return NULL;
 		}
 	}
@@ -241,7 +250,8 @@ void *alloc_block_FF(uint32 size)
 //=========================================
 void *alloc_block_BF(uint32 size)
 {
-    if (size == 0)
+
+	if (size == 0)
         return NULL;
 
 

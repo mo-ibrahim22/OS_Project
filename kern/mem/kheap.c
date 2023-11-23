@@ -122,20 +122,20 @@ void* sbrk(int increment)
 {
 	 if(increment==0)
 	 {
-			cprintf("\n==================== IN SBRK WITH 0 ===========================\n");
+			//cprintf("\n==================== IN SBRK WITH 0 ===========================\n");
 
 		 return (void*)brk_pointer ;
 	 }
 	 else if(increment>0)
 	 {
-			cprintf("\n==================== IN SBRK WITH + ===========================\n");
+			//("\n==================== IN SBRK WITH + ===========================\n");
 
 		// cprintf("sasa is in the increment > 0\n");
 		 return increment_break_pointer(increment);
 	 }
 	 else if(increment<0)
 	 {
-			cprintf("\n==================== IN SBRK WITH - ===========================\n");
+			//cprintf("\n==================== IN SBRK WITH - ===========================\n");
 
 		 return decrement_break_pointer(increment)  ;
 	 }
