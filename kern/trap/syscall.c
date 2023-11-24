@@ -506,12 +506,6 @@ void dellocateAndUnMapFrame(uint32 StartOfDeallocation , uint32 sizeToDeallocate
 
 void* sys_sbrk(int increment)
 {
-
-
-	//cprintf("\n====== I AM IN SBRK FROM USER =======\n");
-
-
-
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
 	//return (void*)-1 ;
@@ -536,32 +530,37 @@ void* sys_sbrk(int increment)
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
-	/*struct Env* env = curenv;//the current running Environment to adjust its break limit
-	if(increment == 0)
-		return (void*)env->Useg_brk;
 
-	else if(increment > 0)
+	/* logic of the function
+	 * 1-if the increment ==0
+	 *       - retrun the current brk pointer
+	 * 2- if the increment > 0
+	 * 		 - mark the new page
+	 * 		 - create a new working set
+	 * 	  if the increment < 0
+	 * 	  	-deallocate& unmap    or  unmark   depend on the page it self
+	 */
+	struct Env* env = curenv;//the current running Environment to adjust its break limit
+	uint32 currenv_brk_pointer =env->Useg_brk;
+	if(increment==0)
 	{
-		uint32 new_increment = (uint32)increment;
-		new_increment = ROUNDUP(new_increment,PAGE_SIZE);
-		uint32 old_sbrk = env->Useg_brk;
-		uint32 new_sbrk = ROUNDUP(old_sbrk,PAGE_SIZE) + new_increment;
+		return (void*)currenv_brk_pointer;
+	}
 
-		new_sbrk = ROUNDUP(new_sbrk,PAGE_SIZE);
-		if(new_sbrk > env->Uhard_limit)
+	else if(increment>0)
+	{
+		uint32 size_to_increment = ROUNDUP(increment, PAGE_SIZE);
+		uint32 new_pointer = ROUNDUP(currenv_brk_pointer, PAGE_SIZE)+size_to_increment;
+		if(new_pointer>env->Uhard_limit)
 		{
 			return (void*)-1;
 		}
-		else
-		{
-			for(uint32 i = old_sbrk; i < new_sbrk ; i+= PAGE_SIZE){
 
-			}
-			env->Useg_brk = new_sbrk;
-			return (void*)old_sbrk;
-		}
+		allocate_user_mem(env ,ROUNDUP(currenv_brk_pointer, PAGE_SIZE),size_to_increment); // to mark
+		env->Useg_brk = new_pointer;
+		return (void*)ROUNDUP(currenv_brk_pointer, PAGE_SIZE);
 	}
-	else  //increment < 0
+	else if (increment<0)
 	{
 		uint32 hint =(uint32)0 ;
 		increment*=-1;
@@ -578,70 +577,15 @@ void* sys_sbrk(int increment)
 		}
 		else
 		{
-	        dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint ,env->env_page_directory );
+			dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint ,env->env_page_directory );
 			env->Useg_brk = new_sbrk;
 			return (void*)env->Useg_brk;
 		}
-	}*/
-	//cprintf("==== INCREMENT =========%d\n" , increment);
-
-	struct Env* env = curenv;//the current running Environment to adjust its break limit
-	uint32 old_brk = env->Useg_brk;
-		if (increment > 0)
-		{
-			increment = ROUNDUP(increment, PAGE_SIZE);
-
-			if (env->Useg_brk + increment > env->Uhard_limit)
-				return (void*)-1;
-
-
-			env->Useg_brk += increment;
-
-			struct FrameInfo *ptr_frame_info = NULL;
-			int ret = allocate_frame(&ptr_frame_info);
-			if (ret == E_NO_MEM)
-				panic("\nERROR_2 - cannot allocate frame, no memory\n");
-
-			ret = map_frame(env->env_page_directory, ptr_frame_info, old_brk, PERM_MARKED|PERM_WRITEABLE | PERM_USER);
-
-			if (ret == E_NO_MEM)
-			{
-				free_frame(ptr_frame_info);
-				panic("\nERROR_3 - cannot map to frame, no memory\n");
-			}
-
-//			struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
-//			meta_data->size = PAGE_SIZE;
-//			meta_data->is_free = 1;
-//			LIST_INSERT_TAIL(&blockList, meta_data);
-			struct WorkingSetElement *new_workingset_element =env_page_ws_list_create_element(curenv,old_brk);
-			LIST_INSERT_TAIL(&curenv->page_WS_list,new_workingset_element);
-			uint32 wsSize = LIST_SIZE(&(curenv->page_WS_list));
-			if(wsSize == (curenv->page_WS_max_size))
-			{
-				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
-			}
-			//cprintf("==== OLD BREAK =========%x\n" , old_brk);
-						//cprintf("==== INCREMENT =========%d\n" , increment);
-						//cprintf("==== HARD LIMIT =========%x\n" , env->Uhard_limit);
-						//cprintf("===== NEW BREAK =========%x\n", env->Useg_brk);
-
-			return (void *) old_brk;
-		}
-		else if (increment < 0)
-		{
-			panic("\nERROR_4 - increment < 0 not implemented yet\n");
-		}
-		else // increment == 0
-		{
-			//cprintf("==== OLD BREAK =========%x\n" , old_brk);
-						//cprintf("==== INCREMENT =========%d\n" , increment);
-						//cprintf("==== HARD LIMIT =========%x\n" , env->Uhard_limit);
-						//cprintf("===== NEW BREAK =========%x\n", env->Useg_brk);
-
-			return (void *) old_brk;
-		}
-
+	}
+	else
+	{
+		return (void*)-1 ;
+	}
 }
 
 

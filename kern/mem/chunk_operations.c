@@ -164,15 +164,39 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+	//inctst();
+	//return;
 	/*==========================================================================*/
 
 	// Write your code here, remove the panic and write your code
-	panic("free_user_mem() is not implemented yet...!!");
-
+	//panic("free_user_mem() is not implemented yet...!!");
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 
+	/* logic of the function
+	 * 1- determine number of pages to work on  ---->done
+	 * 2- unmark these pages in the page table  ----> done
+	 * 3- remove the pages from working set (using invalidate)
+	 * 4- remove these pages from page file (working set)
+	 */
+
+	// determine the number of pages to work on
+	 int num_of_pages = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+	 uint32 base_address_of_each_page = virtual_address ;
+	 // unmark and update address of the page
+	for(int i=0 ;i<num_of_pages ;i++ )
+	{
+		// get the page table
+		uint32  *ptr_page_table =NULL ;
+		int result = get_page_table(e->env_page_directory , base_address_of_each_page , &ptr_page_table);
+		// unmark the page
+		ptr_page_table[PTX(base_address_of_each_page)] =ptr_page_table[PTX(base_address_of_each_page)] & (~PERM_MARKED);
+		// remove the page from the working set
+		env_page_ws_invalidate( e,base_address_of_each_page);
+		// remove the page from the page file
+		pf_remove_env_page(e,base_address_of_each_page);
+		//update the address
+		base_address_of_each_page+=PAGE_SIZE;
+	}
 }
 
 //=====================================

@@ -86,27 +86,21 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 if(wsSize < (curenv->page_WS_max_size))
 	{
 		//fault_va = ROUNDDOWN(fault_va,PAGE_SIZE);
-
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
-
-		cprintf("IN PAGE PLACEMENT\n");
 		int Page_file_val = pf_read_env_page(curenv,(void *)fault_va);
-
 		if(Page_file_val == E_PAGE_NOT_EXIST_IN_PF)
 		{
 			if( (fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP) ||(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX) )
 			{
-
-
 				if(fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP )
 				{
-					cprintf("\nHandle Fault_va in stack\n");
+					//cprintf("\nHandle Fault_va in stack\n");
 				}
 
 				if(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX)
 				{
-					cprintf("\nHandle Fault_va in heap\n");
+					//cprintf("\nHandle Fault_va in heap\n");
 				}
 				struct FrameInfo * ptr_frame_info = NULL;
 						allocate_frame(&ptr_frame_info);
@@ -125,7 +119,6 @@ if(wsSize < (curenv->page_WS_max_size))
 				//
 				//cprintf("\nKill the environment Fault Handler\n");
 				//
-
 				sched_kill_env(curenv->env_id);
 			}
 		}
@@ -148,9 +141,6 @@ if(wsSize < (curenv->page_WS_max_size))
 	}
 	else
 	{
-		cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
-		cprintf("REPLACEMENT=========================max Size = %d\n", curenv->page_WS_max_size );
-
 		//refer to the project presentation and documentation for details
 		if(isPageReplacmentAlgorithmFIFO())
 		{

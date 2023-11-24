@@ -49,21 +49,16 @@ void* malloc(uint32 size)
 
 	 if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
 	 {
-		 //cprintf(" the size========= %d\n", size);
-		// cprintf("I'm here 1  and my  size = %d\n" ,size);
 		void* pointer_ = alloc_block_FF(size);
-
 		return pointer_ ;
 	 }
 
 	 else
 	 {
-		// cprintf("I'm in the else!!!!!!!!!!!!!!!!!!!!!\n");
 		 int num_of_page_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
 		 uint32  hardLimt = (uint32) sys_u_hard_limit();
 
 		 uint32 va_to_check = hardLimt + PAGE_SIZE ;
-		// cprintf( "the start address of allocation = %d\n" ,  hardLimt + PAGE_SIZE );
 		 int cnt = 0 ;
 
 		 int is_found =0 ;
@@ -74,10 +69,7 @@ void* malloc(uint32 size)
 			 if(is_found==1)
 			     break;
 			     uint32 index = (va_to_check / PAGE_SIZE) - ((hardLimt + PAGE_SIZE) / PAGE_SIZE );
-			     //cprintf(" the index now = %d\n",index);
 				 uint32 target_value =  user_page_status[index] ;  // target value = 0 then page is free   else page not free
-
-
 				 if(target_value==(uint32)0)
 				 {
 					 if(cnt == 0){
@@ -113,7 +105,6 @@ void* malloc(uint32 size)
 					 break;
 				 }
 			 }
-			// cprintf( "the actual address of allocation = %d\n" ,base_address );
 			 sys_allocate_user_mem(base_address, ROUNDUP(size, PAGE_SIZE));    // don't forget to round in sys_allcate
 			 int cnt1 =0 ;
 
@@ -122,7 +113,6 @@ void* malloc(uint32 size)
 				 if(user_page_status[i]==1)
 					 cnt1++;
 			 }
-			 //cprintf("cnt1 = %d \n\n" ,cnt1);
 			 return (void*)base_address;
 		 }
 	 }
@@ -137,11 +127,47 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address)
 {
+	/* logic of the function :
+	 *  1- if the va in the range of block_allocator then call kfree
+	 *  2 else : (in the range of the page allocator)
+	 *  	1- check in the arr_user_va for the virtual address ----> done
+	 *  	2- get the size corresponding to virtual address   ----->done
+	 *  	3- how many pages this size had taken  ------>done
+	 *  	4- get the index of the virtual address in the user_page_status   ----> done
+	 *  	5- change status of pages required from 1 to 0
+	 */
+	// implementation of the logic of the function
+	 if((uint32)virtual_address>=USER_HEAP_START &&(uint32)virtual_address<sys_u_hard_limit())
+	 {
+		 free_block(virtual_address);
+	 }
+	 else
+	 {
+		 //step1 get the size which was taken by the virtual_address
+		 uint32 size_taken_for_va;
+		 for(int i=0 ;i< NUM_OF_UHEAP_PAGES;i++)
+		 {
+			 if(arr_user_va[i]==(uint32)virtual_address)
+			 {
+				 size_taken_for_va = size_user_va[i];
+				 break;
+			 }
+		 }
+		 // step 2 : get the index of va in page status
+		 int num_of_page_to_unmark = (int)(ROUNDUP(size_taken_for_va, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+		 uint32 va_index_in_page_status_arr =  ((uint32)virtual_address / PAGE_SIZE) - ((sys_u_hard_limit() + PAGE_SIZE) / PAGE_SIZE );
+         // step3 : change status of the the pages in page status array
+		 for(int i =va_index_in_page_status_arr ;i<va_index_in_page_status_arr+num_of_page_to_unmark ;i++)
+		 {
+			 user_page_status[i]=(uint32)0;
+		 }
+		 sys_free_user_mem((uint32)virtual_address ,size_taken_for_va);
+	 }
+	//////////////////////////////////////////
 	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
 	// Write your code here, remove the panic and write your code
-	panic("free() is not implemented yet...!!");
+	//panic("free() is not implemented yet...!!");
 }
-
 
 //=================================
 // [4] ALLOCATE SHARED VARIABLE:

@@ -336,8 +336,7 @@ void* sys_sbrk(int increment)
 {
 	//Comment the following line before start coding...
 	//panic("not implemented yet");
-
-	 return (void*)syscall(SYS_sbrk,(uint32)increment,0,0,0,0);
+  return (void*)syscall(SYS_sbrk,(uint32)increment,0,0,0,0);
 }
 
 uint32 sys_u_hard_limit()

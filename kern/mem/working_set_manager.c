@@ -81,10 +81,9 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 				{
 					e->page_last_WS_element = LIST_NEXT(wse);
 				}
+
 				LIST_REMOVE(&(e->page_WS_list), wse);
-
 				kfree(wse);
-
 				break;
 			}
 		}

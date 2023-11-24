@@ -90,7 +90,7 @@ void* increment_break_pointer(int increment)
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer = new_brk ;
 		allocateAndMapFrames(ROUNDUP(previous_brk_ptr, PAGE_SIZE) ,size_to_increment) ;
-		return (void*) previous_brk_ptr ;
+		return (void*) ROUNDUP(previous_brk_ptr, PAGE_SIZE) ;
 	}
 }
 void* decrement_break_pointer(int increment)
@@ -122,21 +122,14 @@ void* sbrk(int increment)
 {
 	 if(increment==0)
 	 {
-			//cprintf("\n==================== IN SBRK WITH 0 ===========================\n");
-
 		 return (void*)brk_pointer ;
 	 }
 	 else if(increment>0)
 	 {
-			//("\n==================== IN SBRK WITH + ===========================\n");
-
-		// cprintf("sasa is in the increment > 0\n");
 		 return increment_break_pointer(increment);
 	 }
 	 else if(increment<0)
 	 {
-			//cprintf("\n==================== IN SBRK WITH - ===========================\n");
-
 		 return decrement_break_pointer(increment)  ;
 	 }
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
@@ -163,7 +156,6 @@ uint32 arr_va [NUM_OF_KHEAP_PAGES];
 uint32 size_va [NUM_OF_KHEAP_PAGES];
 void* kmalloc(unsigned int size)
 {
-
      if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
      {
     	// cprintf("I'm here 1  and my  size = %d\n" ,size);
