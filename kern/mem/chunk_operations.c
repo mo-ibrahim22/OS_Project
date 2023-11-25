@@ -194,6 +194,8 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		env_page_ws_invalidate( e,base_address_of_each_page);
 		// remove the page from the page file
 		pf_remove_env_page(e,base_address_of_each_page);
+		//unmap
+		unmap_frame(e->env_page_directory, base_address_of_each_page);
 		//update the address
 		base_address_of_each_page+=PAGE_SIZE;
 	}

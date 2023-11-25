@@ -108,7 +108,6 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 int cnt = 0;
 void *alloc_block_FF(uint32 size)
 {
-    cnt++;
 	//print_blocks_list(blockList);
 	//cprintf("i'm in ms1 in allocate irst fit!!!!!\n");
 	if(size==0)
@@ -172,66 +171,37 @@ void *alloc_block_FF(uint32 size)
 		cr_Block = LIST_NEXT(cr_Block);
 	}
 
-    if(is_block_allocated==0)
-	{
-		if(is_last_block_free==1)
+
+	if(is_block_allocated==0)
 		{
-			uint32 space_to_sbrk = (uint32)total_size_to_be_allocated-(uint32)size_of_last_block;
-
-			void* adrs =  sbrk(space_to_sbrk);
-			if(adrs!=(void*)-1)
-			{
-				uint32 rounded_space = ROUNDUP(space_to_sbrk, PAGE_SIZE) ;
-				uint32 total_size_of_next_block = rounded_space - space_to_sbrk;
-				if(total_size_of_next_block > meta_data_size)
-				 {
-					 struct BlockMetaData * nextblock =(struct BlockMetaData*)((uint32)last_Block+(uint32)total_size_to_be_allocated);
-					 nextblock->is_free=1;
-					 nextblock->size=total_size_of_next_block;
-					 LIST_INSERT_TAIL(&blockList,nextblock);
-
-				 }
-				last_Block->is_free=0;
-				last_Block->size =total_size_to_be_allocated;
-				//cprintf("I'm  returned from here   44444444444444\n");
-				//
-								//cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
-									//print_blocks_list(blockList);
-
-							//
-
-				return (void*)((uint32)last_Block+meta_data_size);
-			}
-			return NULL;
-		}
-
-		else if(is_last_block_free==0)
-		{
-
-			uint32 rounded_space = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
 			void* adrs = sbrk(total_size_to_be_allocated);
-			if(adrs!=(void*)-1)
-			{
-				struct BlockMetaData * block_needed =(struct BlockMetaData*)((uint32)last_Block+(uint32)last_Block->size);
-				block_needed->is_free=0;
-				block_needed->size=total_size_to_be_allocated;
-				LIST_INSERT_TAIL(&blockList,block_needed);
-				uint32 total_size_of_next_block = rounded_space - total_size_to_be_allocated ;
-				struct BlockMetaData * nextblock =(struct BlockMetaData*)((uint32)block_needed+(uint32)block_needed->size);
-				nextblock->is_free=1;
-				nextblock->size=total_size_of_next_block;
-				LIST_INSERT_TAIL(&blockList,nextblock);
-				//
-								//cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
-									//print_blocks_list(blockList);
+			uint32 rounded_space = ROUNDUP(total_size_to_be_allocated, PAGE_SIZE) ;
+	    	if (adrs != (void *)-1)
+	    	{
+		    	struct BlockMetaData * block_needed = (struct BlockMetaData*)((uint32)last_Block+(uint32)last_Block->size);
+				uint32 next_block_size=rounded_space-total_size_to_be_allocated;
+	    	    if(next_block_size > meta_data_size)
+	    	    {
+		    	   block_needed->is_free = 0;
+		    	   block_needed->size = total_size_to_be_allocated;
+		    	   LIST_INSERT_TAIL(&blockList, block_needed);
+	    	       struct BlockMetaData *nextblock;
+	    		   nextblock = (struct BlockMetaData *)((uint32)block_needed+block_needed->size);
+	    		   nextblock->is_free = 1;
+	    		   nextblock->size = next_block_size;
+	    		   LIST_INSERT_TAIL(&blockList, nextblock);
+	    	    }
+	    	    else
+	    	    {
+	    	    	block_needed->is_free = 0;
+	    	    	block_needed->size = rounded_space;
+	    	        LIST_INSERT_TAIL(&blockList, block_needed);
+	    	    }
+	    	      return (void*)((uint32)block_needed+meta_data_size);
 
-								//
+	    	}
 
-				return (void*)((uint32)block_needed+meta_data_size);
-			}
-			return NULL;
 		}
-	}
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
 	//panic("alloc_block_FF is not implemented yet");
     return NULL ;
