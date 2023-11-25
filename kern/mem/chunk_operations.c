@@ -188,6 +188,8 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		// get the page table
 		uint32  *ptr_page_table =NULL ;
 		int result = get_page_table(e->env_page_directory , base_address_of_each_page , &ptr_page_table);
+		if(result==TABLE_IN_MEMORY)
+		{
 		// unmark the page
 		ptr_page_table[PTX(base_address_of_each_page)] =ptr_page_table[PTX(base_address_of_each_page)] & (~PERM_MARKED);
 		// remove the page from the working set
@@ -196,6 +198,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		pf_remove_env_page(e,base_address_of_each_page);
 		//unmap
 		unmap_frame(e->env_page_directory, base_address_of_each_page);
+		}
 		//update the address
 		base_address_of_each_page+=PAGE_SIZE;
 	}
