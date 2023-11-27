@@ -88,49 +88,28 @@ if(wsSize < (curenv->page_WS_max_size))
 		//fault_va = ROUNDDOWN(fault_va,PAGE_SIZE);
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
-		int Page_file_val = pf_read_env_page(curenv,(void *)fault_va);
-		if(Page_file_val == E_PAGE_NOT_EXIST_IN_PF)
-		{
-			if( (fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP) ||(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX) )
-			{
-				if(fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP )
-				{
-					//cprintf("\nHandle Fault_va in stack\n");
-				}
 
-				if(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX)
-				{
-					//cprintf("\nHandle Fault_va in heap\n");
-				}
-				struct FrameInfo * ptr_frame_info = NULL;
-						allocate_frame(&ptr_frame_info);
-						ptr_frame_info->va = fault_va;
-						map_frame(curenv->env_page_directory ,ptr_frame_info ,fault_va , PERM_WRITEABLE|PERM_USER|PERM_PRESENT);
 
-				struct WorkingSetElement *new_workingset_element =env_page_ws_list_create_element(curenv,fault_va);
-				LIST_INSERT_TAIL(&curenv->page_WS_list,new_workingset_element);
-				uint32 wsSize = LIST_SIZE(&(curenv->page_WS_list));
-				if(wsSize == (curenv->page_WS_max_size)){
-					curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
-				}
-			}
-			else
-			{
-				//
-				//cprintf("\nKill the environment Fault Handler\n");
-				//
-				sched_kill_env(curenv->env_id);
-			}
-		}
-		else
+
+	int Page_file_val = pf_read_env_page(curenv,(void *)fault_va);
+	if(Page_file_val == E_PAGE_NOT_EXIST_IN_PF)
+	{
+		if( (fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP) ||(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX) )
 		{
-			//
-			cprintf("\nHandle Fault_va in Page File\n");
-			//
+			if(fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP )
+			{
+				//cprintf("\nHandle Fault_va in stack\n");
+			}
+
+			if(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX)
+			{
+				//cprintf("\nHandle Fault_va in heap\n");
+			}
 			struct FrameInfo * ptr_frame_info = NULL;
-			allocate_frame(&ptr_frame_info);
-			ptr_frame_info->va = fault_va;
-			map_frame(curenv->env_page_directory ,ptr_frame_info ,fault_va , PERM_WRITEABLE|PERM_USER|PERM_PRESENT);
+					allocate_frame(&ptr_frame_info);
+					ptr_frame_info->va = fault_va;
+					map_frame(curenv->env_page_directory ,ptr_frame_info ,fault_va , PERM_WRITEABLE|PERM_USER|PERM_PRESENT);
+
 			struct WorkingSetElement *new_workingset_element =env_page_ws_list_create_element(curenv,fault_va);
 			LIST_INSERT_TAIL(&curenv->page_WS_list,new_workingset_element);
 			uint32 wsSize = LIST_SIZE(&(curenv->page_WS_list));
@@ -138,6 +117,32 @@ if(wsSize < (curenv->page_WS_max_size))
 				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
 			}
 		}
+		else
+		{
+			//
+			//cprintf("\nKill the environment Fault Handler\n");
+			//
+			sched_kill_env(curenv->env_id);
+		}
+	}
+	else
+	{
+		//
+		cprintf("\n\n============== Handle Fault_va in Page File ======================\n\n");
+		//
+		struct FrameInfo * ptr_frame_info = NULL;
+		allocate_frame(&ptr_frame_info);
+		ptr_frame_info->va = fault_va;
+		map_frame(curenv->env_page_directory ,ptr_frame_info ,fault_va , PERM_WRITEABLE|PERM_USER|PERM_PRESENT);
+		struct WorkingSetElement *new_workingset_element =env_page_ws_list_create_element(curenv,fault_va);
+		LIST_INSERT_TAIL(&curenv->page_WS_list,new_workingset_element);
+		uint32 wsSize = LIST_SIZE(&(curenv->page_WS_list));
+		if(wsSize == (curenv->page_WS_max_size)){
+			curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+		}
+	}
+
+
 	}
 	else
 	{

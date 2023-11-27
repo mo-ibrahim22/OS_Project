@@ -102,8 +102,9 @@ void* decrement_break_pointer(int increment)
 	{
 		hint = PAGE_SIZE;
 	}
+	uint32 old_size_to_decrement = size_to_decrement;
 	size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);    // 8
-	uint32 new_brk = brk_pointer - size_to_decrement - (size_to_decrement%PAGE_SIZE) ;  //
+	uint32 new_brk = brk_pointer - size_to_decrement - (old_size_to_decrement%PAGE_SIZE) ;  //
 	if(new_brk<dstart_of_kernal_heap)
 	{
 		panic("down of start of kernel heap !!\n");
@@ -113,7 +114,7 @@ void* decrement_break_pointer(int increment)
 	{
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer =new_brk ;
-		uint32 startAddressOfDeallocation = previous_brk_ptr ;   // notmazbooot
+		uint32 startAddressOfDeallocation = previous_brk_ptr ;
 		dellocateAndUnMapFrames(startAddressOfDeallocation ,size_to_decrement+hint) ;
 		return (void*)brk_pointer ;
 	}

@@ -205,16 +205,20 @@ void _main(void)
 
 	//====================================================================//
 	/*FF ALLOC Scenario 5: Test a Non-Granted Request */
+	cprintf("The size of The List = %d\n\n" , LIST_SIZE(&blockList));
 	cprintf("5: Test a Non-Granted Request\n\n") ;
 	{
+
 		is_correct = 1;
 		actualSize = 2*kilo - sizeOfMetaData();
 
 		//Fill the 7th free block
 		va = malloc(actualSize);
 
+
 		//Fill the remaining area
 		uint32 numOfRem2KBAllocs = ((USER_HEAP_START + DYN_ALLOC_MAX_SIZE - (uint32)sbrk(0)) / PAGE_SIZE) * 2;
+		//cprintf("Size of for = %d\n\n" ,numOfRem2KBAllocs );
 		for (int i = 0; i < numOfRem2KBAllocs; ++i)
 		{
 			va = malloc(actualSize);
@@ -240,6 +244,9 @@ void _main(void)
 			eval += 20;
 		}
 	}
+	//cprintf("The size of The List = %d\n\n" , LIST_SIZE(&blockList));
+	//print_blocks_list(blockList);
+
 	cprintf("test FIRST FIT (2) [DYNAMIC ALLOCATOR] is finished. Evaluation = %d%\n", eval);
 
 	return;

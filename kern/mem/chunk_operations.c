@@ -159,6 +159,14 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 //=====================================
 // 2) FREE USER MEMORY:
 //=====================================
+int is_mapped(uint32 va ,uint32 * ptr_page_table)
+{
+	uint32 old_entry = ptr_page_table[PTX(va)] ;
+	uint32 check_entry = ptr_page_table[PTX(va)] & (~PERM_PRESENT);
+	if(old_entry == check_entry )
+		return 0 ;
+	return 1 ;
+}
 void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*==========================================================================*/
@@ -178,7 +186,6 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	 * 3- remove the pages from working set (using invalidate)
 	 * 4- remove these pages from page file (working set)
 	 */
-
 	// determine the number of pages to work on
 	 int num_of_pages = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
 	 uint32 base_address_of_each_page = virtual_address ;
@@ -192,12 +199,15 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		{
 		// unmark the page
 		ptr_page_table[PTX(base_address_of_each_page)] =ptr_page_table[PTX(base_address_of_each_page)] & (~PERM_MARKED);
-		// remove the page from the working set
-		env_page_ws_invalidate( e,base_address_of_each_page);
-		// remove the page from the page file
-		pf_remove_env_page(e,base_address_of_each_page);
-		//unmap
-		unmap_frame(e->env_page_directory, base_address_of_each_page);
+		if(is_mapped(base_address_of_each_page ,ptr_page_table )==1)
+			{
+			// remove the page from the working set
+			env_page_ws_invalidate( e,base_address_of_each_page);
+			// remove the page from the page file
+			pf_remove_env_page(e,base_address_of_each_page);
+			//unmap
+			unmap_frame(e->env_page_directory, base_address_of_each_page);
+			}
 		}
 		//update the address
 		base_address_of_each_page+=PAGE_SIZE;

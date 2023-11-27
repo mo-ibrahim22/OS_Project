@@ -569,15 +569,19 @@ void* sys_sbrk(int increment)
 		{
 			hint = PAGE_SIZE;
 		}
-		size_to_decrement = size_to_decrement -(size_to_decrement%PAGE_SIZE);
-		uint32 new_sbrk = env->Useg_brk - size_to_decrement - (size_to_decrement%PAGE_SIZE) ;
+		uint32 old_size_to_decrement = size_to_decrement;
+		size_to_decrement = size_to_decrement - (size_to_decrement%PAGE_SIZE);
+		uint32 new_sbrk = env->Useg_brk - size_to_decrement - (old_size_to_decrement%PAGE_SIZE) ;
 		if(new_sbrk < env->Ustart)
 		{
 			return (void*)-1;
 		}
 		else
 		{
-			dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint ,env->env_page_directory );
+			uint32 va_of_target_page = new_sbrk;
+			va_of_target_page = ROUNDUP(va_of_target_page, PAGE_SIZE);
+			free_user_mem(env ,va_of_target_page ,size_to_decrement+hint);
+			//dellocateAndUnMapFrame(env->Useg_brk , size_to_decrement+hint ,env->env_page_directory );
 			env->Useg_brk = new_sbrk;
 			return (void*)env->Useg_brk;
 		}
