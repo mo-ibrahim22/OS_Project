@@ -99,6 +99,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	 memblock->size=initSizeOfAllocatedSpace;
 	 LIST_INIT(&blockList);
 	 LIST_INSERT_TAIL(&blockList,memblock);    // may be removed if needed
+	 tracked_block = NULL;
 	 //panic("initialize_dynamic_allocator is not implemented yet");
 }
 
@@ -126,7 +127,18 @@ void *alloc_block_FF(uint32 size)
     uint8 is_last_block_free=0;        // for keep tracking
     uint32 size_of_last_block;         // for keep tracking
     struct BlockMetaData * last_Block;
-	struct BlockMetaData * cr_Block = LIST_FIRST(&blockList);
+
+    struct BlockMetaData * cr_Block;
+
+    if(tracked_block == NULL || tracked_block->size > (size + sizeOfMetaData()))
+    {
+    	cr_Block = LIST_FIRST(&blockList);
+    }
+    else
+    {
+    	cr_Block = tracked_block;
+    }
+
 	uint32 meta_data_size = sizeOfMetaData();
 	int is_block_allocated=0;
 	uint32 total_size_to_be_allocated;
@@ -145,6 +157,7 @@ void *alloc_block_FF(uint32 size)
 			if(total_size_to_be_allocated==current_block_size)
 			{
 				cr_Block->is_free=0;
+				tracked_block = cr_Block;
 				return (void*) ((uint32)cr_Block+meta_data_size);
 			}
 			else if(total_size_to_be_allocated<current_block_size)
@@ -164,6 +177,7 @@ void *alloc_block_FF(uint32 size)
 				 cr_Block->is_free=0;
 				 //cprintf("\n================= IN END OF ALLOC BLOCK FF WITH SIZE = %d\n" ,size);
 				 //print_blocks_list(blockList);
+				tracked_block = cr_Block;
 
 				 return   (void*)((uint32)cr_Block+meta_data_size);
 			}
@@ -197,7 +211,9 @@ void *alloc_block_FF(uint32 size)
 	    	    	block_needed->size = rounded_space;
 	    	        LIST_INSERT_TAIL(&blockList, block_needed);
 	    	    }
-	    	      return (void*)((uint32)block_needed+meta_data_size);
+				tracked_block = block_needed;
+
+	    	    return (void*)((uint32)block_needed+meta_data_size);
 
 	    	}
 
@@ -328,6 +344,12 @@ void Handle_Case_If_The_Block_Is_First_Block(struct BlockMetaData * selected_blo
 	if(next_block->is_free==0)
 	{
 		selected_block->is_free=1;
+
+		if(selected_block <= tracked_block && selected_block->size >= tracked_block->size)
+		{
+			tracked_block = selected_block;
+		}
+
 	}
 	else
 	{
@@ -335,6 +357,12 @@ void Handle_Case_If_The_Block_Is_First_Block(struct BlockMetaData * selected_blo
 		selected_block->size+= next_block->size;
 		struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
 		selected_block->prev_next_info.le_next=next_of_next_block;
+
+		if(selected_block <= tracked_block && selected_block->size >= tracked_block->size)
+		{
+			tracked_block = selected_block;
+		}
+
 		next_block->is_free=0;
 		next_block->size=0;
 		//next_block=NULL;
@@ -347,11 +375,21 @@ void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_bloc
 	if(prev_block->is_free==0)
 	{
 		selected_block->is_free=1;
+		if(selected_block <= tracked_block && selected_block->size >= tracked_block->size)
+		{
+			tracked_block = selected_block;
+		}
 	}
 	else
 	{
 		prev_block->size+= selected_block->size;
 		prev_block->prev_next_info.le_next=NULL;
+
+		if(prev_block <= tracked_block && prev_block->size >= tracked_block->size)
+		{
+			tracked_block = prev_block;
+		}
+
 		selected_block->is_free=0;
 		selected_block->size=0;
 		//selected_block=NULL;
@@ -362,12 +400,22 @@ void Handle_Case_If_The_Block_Is_Last_Block(struct BlockMetaData * selected_bloc
 void Handle_Case_If_Previous_And_Next_are_Full(struct BlockMetaData * selected_block)
 {
 	selected_block->is_free=1;
+	if(selected_block <= tracked_block && selected_block->size >= tracked_block->size)
+	{
+		tracked_block = selected_block;
+	}
 }
 void Handle_Case_If_Previous_And_Next_are_Free(struct BlockMetaData * selected_block ,struct BlockMetaData * prev_block ,struct BlockMetaData * next_block)
 {
 	struct BlockMetaData * next_of_next_block = LIST_NEXT(next_block);
 	prev_block->size+=(selected_block->size+next_block->size);
 	prev_block->prev_next_info.le_next=next_of_next_block;
+
+	if(prev_block <= tracked_block && prev_block->size >= tracked_block->size)
+	{
+		tracked_block = prev_block;
+	}
+
 	selected_block->is_free=0;
 	selected_block->size=0;
 	next_block->is_free=0;
@@ -386,6 +434,10 @@ void Handle_Case_If_Only_Next_Is_Free(struct BlockMetaData * selected_block , st
 	selected_block->is_free=1;
 	selected_block->size += size_of_next_block;
 	selected_block->prev_next_info.le_next = block;
+	if(selected_block <= tracked_block && selected_block->size >= tracked_block->size)
+	{
+		tracked_block = selected_block;
+	}
 	next_block->is_free=0;
 	next_block->size=0;
 	//next_block=NULL;
@@ -396,6 +448,10 @@ void Handle_Case_If_Only_Previous_Is_Free(struct BlockMetaData * selected_block,
 {
 	prev_block->size += selected_block->size;
 	prev_block->prev_next_info.le_next=next_block;
+	if(prev_block <= tracked_block && prev_block->size >= tracked_block->size)
+	{
+		tracked_block = prev_block;
+	}
 	selected_block->is_free=0;
 	selected_block->size=0;
 	//selected_block=NULL;
