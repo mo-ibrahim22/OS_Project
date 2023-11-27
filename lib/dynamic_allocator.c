@@ -106,6 +106,9 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
+
+int enter_reallocate = 0;
+
 int cnt = 0;
 void *alloc_block_FF(uint32 size)
 {
@@ -133,6 +136,11 @@ void *alloc_block_FF(uint32 size)
     if(tracked_block == NULL || tracked_block->size > (size + sizeOfMetaData()))
     {
     	cr_Block = LIST_FIRST(&blockList);
+    }
+    else if (enter_reallocate == 1)
+    {
+    	cr_Block = LIST_FIRST(&blockList);
+    	enter_reallocate = 0;
     }
     else
     {
@@ -537,6 +545,9 @@ void *realloc_block_FF(void* va, uint32 new_size) // not completed (if small siz
 		//cprintf("now here  3\n");
 		return alloc_block_FF(0);
 	}
+
+
+	enter_reallocate = 1;
 
 	uint32 meta_data_size = sizeOfMetaData();
 	uint32 address_of_block = (uint32)va-(uint32)meta_data_size;

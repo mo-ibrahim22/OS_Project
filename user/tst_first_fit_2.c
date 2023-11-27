@@ -205,7 +205,6 @@ void _main(void)
 
 	//====================================================================//
 	/*FF ALLOC Scenario 5: Test a Non-Granted Request */
-	cprintf("The size of The List = %d\n\n" , LIST_SIZE(&blockList));
 	cprintf("5: Test a Non-Granted Request\n\n") ;
 	{
 
@@ -244,8 +243,6 @@ void _main(void)
 			eval += 20;
 		}
 	}
-	//cprintf("The size of The List = %d\n\n" , LIST_SIZE(&blockList));
-	//print_blocks_list(blockList);
 
 	cprintf("test FIRST FIT (2) [DYNAMIC ALLOCATOR] is finished. Evaluation = %d%\n", eval);
 

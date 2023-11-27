@@ -128,7 +128,7 @@ if(wsSize < (curenv->page_WS_max_size))
 	else
 	{
 		//
-		cprintf("\n\n============== Handle Fault_va in Page File ======================\n\n");
+		//cprintf("\n\n============== Handle Fault_va in Page File ======================\n\n");
 		//
 		struct FrameInfo * ptr_frame_info = NULL;
 		allocate_frame(&ptr_frame_info);

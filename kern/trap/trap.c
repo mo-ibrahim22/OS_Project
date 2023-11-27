@@ -421,7 +421,7 @@ void fault_handler(struct Trapframe *tf)
 
 			// first we will check if the fault_va come from access kernel or not
 			//
-			if(fault_va > USER_LIMIT)
+			if(fault_va >= USER_LIMIT)
 			{
 				//
 				//cprintf("\nKill The environment using Kernel\n");

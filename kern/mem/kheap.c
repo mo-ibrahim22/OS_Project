@@ -32,9 +32,17 @@ void dellocateAndUnMapFrames(uint32 StartOfDeallocation , uint32 sizeToDeallocat
 	int cnt = (int)(ROUNDUP(sizeToDeallocate, PAGE_SIZE) / (uint32)PAGE_SIZE) ;  // 1
 	for(int i=0 ;i<cnt ;i++)
 	{
-	  //unmap frames
-	  unmap_frame(ptr_page_directory ,va);
-	  va -= PAGE_SIZE ;
+		uint32* ptr_page_table = NULL;
+	   //get the page table.
+	   get_page_table(ptr_page_directory, va, &ptr_page_table);
+	   //uint32 target_page_address = ptr_page_table[PTX((uint32)virtual_address)];
+	   // get the frame from page table.
+	   struct FrameInfo * target_frame = get_frame_info(ptr_page_directory, va, &ptr_page_table);
+	   target_frame->va = (uint32)0;
+	   free_frame(target_frame);
+	   //unmap frames
+	   unmap_frame(ptr_page_directory ,va);
+	   va -= PAGE_SIZE ;
 	}
 
 }
@@ -396,10 +404,149 @@ void kexpand(uint32 newSize)
 //	A call with virtual_address = null is equivalent to kmalloc().
 //	A call with new_size = zero is equivalent to kfree().
 
+
+//=================================================================================//
+//============================== BONUS FUNCTION ===================================//
+//=================================================================================//
+// krealloc():
+
+//	Attempts to resize the allocated space at "virtual_address" to "new_size" bytes,
+//	possibly moving it in the heap.
+//	If successful, returns the new virtual_address, in which case the old virtual_address must no longer be accessed.
+//	On failure, returns a null pointer, and the old virtual_address remains valid.
+
+//	A call with virtual_address = null is equivalent to kmalloc().
+//	A call with new_size = zero is equivalent to kfree().
+
+int page_is_mapped(uint32 va ,uint32 * ptr_page_table)
+{
+	uint32 old_entry = ptr_page_table[PTX(va)] ;
+	uint32 check_entry = ptr_page_table[PTX(va)] & (~PERM_PRESENT);
+	if(old_entry == check_entry )
+		return 0 ;
+	return 1 ;
+}
 void *krealloc(void *virtual_address, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS2 - BONUS#1] [1] KERNEL HEAP - krealloc()
-	// Write your code here, remove the panic and write your code
+	if(virtual_address !=NULL && new_size == 0)
+	{
+		kfree(virtual_address);
+		return NULL;
+	}
+	else if(virtual_address==NULL && new_size!=0)
+	{
+		return kmalloc(new_size);
+	}
+	else if (virtual_address == NULL && new_size==0)
+	{
+		return NULL;
+	}
+
+	// The virtual address in Block Range
+	if((uint32)virtual_address  >= KERNEL_HEAP_START && (uint32)virtual_address  < hard_limit)
+	{
+		if(new_size<=DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			// new size in Block range
+			void* pointer_ = realloc_block_FF(virtual_address , new_size);
+			return pointer_;
+		}
+		else
+		{
+			// new size in Page Range
+			kfree(virtual_address);
+			return kmalloc(new_size);
+		}
+	}
+	else
+	{
+		// in Page Range
+		// Get the current size
+		uint32 new_va =(uint32)virtual_address;
+		new_va = ROUNDDOWN(new_va , PAGE_SIZE);
+		uint32 current_size ;
+		int index = -1;
+		for(int i=0 ;i<NUM_OF_KHEAP_PAGES ;i++)
+		{
+			if(arr_va[i]==(uint32)new_va)
+			{
+				index = i;
+				current_size =size_va[i];
+				break ;
+			}
+		}
+		//
+		if(index == -1)
+			return NULL;
+		//
+
+		if(current_size == new_size)
+		{
+			// the current size = the new size
+			return virtual_address;
+		}
+		// if new size < current size
+		else if(new_size < current_size)
+		{
+			// new size in Block range
+			if(new_size<=DYN_ALLOC_MAX_BLOCK_SIZE)
+			{
+				kfree(virtual_address);
+				return kmalloc(new_size);
+			}
+			// still in Page Range
+			else
+			{
+				new_size = ROUNDUP(new_size , PAGE_SIZE);
+				uint32 size_to_deallocate = current_size - new_size ;
+				dellocateAndUnMapFrames(new_va + current_size , size_to_deallocate);
+				size_va[index] = new_size;
+			}
+		}
+		else
+		{
+			// new size > current size
+
+			new_size = ROUNDUP(new_size , PAGE_SIZE);
+			uint32 size_to_allocate = new_size - current_size ;
+
+			int cnt =0 ;
+			int num_of_pages_to_allocate = (int)(ROUNDUP(size_to_allocate, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
+			// calculate num of free pages after me
+			uint32 start_address_to_check = new_va + current_size ;
+			for(int i=0 ;i<num_of_pages_to_allocate;i++)
+			{
+				uint32  *ptr_page_table =NULL ;
+				int result = get_page_table(ptr_page_directory , start_address_to_check , &ptr_page_table);
+				if(result==TABLE_IN_MEMORY)
+				{
+					if(page_is_mapped(start_address_to_check,ptr_page_table)==0)
+						cnt++;
+					else
+						break;
+				}
+				start_address_to_check+=PAGE_SIZE;
+			}
+			// size free after me fits me
+			if(cnt==num_of_pages_to_allocate)
+			{
+				allocateAndMapFrames(new_va+ current_size ,size_to_allocate);
+				size_va[index]=new_size;
+				return virtual_address;
+			}
+			// size free after me doesn't fit me
+			else
+			{
+				arr_va[index]=0;
+				size_va[index]=0;
+				kfree(virtual_address);
+				return kmalloc(new_size);
+
+			}
+
+		}
+	}
 	return NULL;
-	panic("krealloc() is not implemented yet...!!");
 }
+
