@@ -502,6 +502,7 @@ void *krealloc(void *virtual_address, uint32 new_size)
 				uint32 size_to_deallocate = current_size - new_size ;
 				dellocateAndUnMapFrames(new_va + current_size , size_to_deallocate);
 				size_va[index] = new_size;
+				return virtual_address;
 			}
 		}
 		else
