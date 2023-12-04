@@ -14,6 +14,7 @@
 #define SCH_RR 0
 #define SCH_MLFQ 1
 #define SCH_BSD 2
+#define load_avg = 0;
 
 unsigned scheduler_method ;
 

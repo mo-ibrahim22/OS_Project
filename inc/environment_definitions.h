@@ -118,6 +118,11 @@ struct Env {
 	//================
 	//page working set management
 
+	int nice;
+	uint32 priority_value;
+	uint32 recent_cpu;
+	uint32 load_avg;
+
 #if USE_KHEAP
 	//struct WorkingSetElement* ptr_pageWorkingSet;
 	struct WS_List page_WS_list ;					//List of WS elements

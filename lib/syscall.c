@@ -344,6 +344,11 @@ uint32 sys_u_hard_limit()
 	return syscall(SYS_u_hard_limit, 0, 0, 0, 0, 0);
 }
 
+void sys_env_set_nice(struct Env* e, int nice_value)
+{
+	syscall(SYS_env_set_nice, e, nice_value, 0, 0, 0);
+}
+
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...

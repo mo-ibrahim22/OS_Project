@@ -57,6 +57,7 @@ enum
 	SYS_allocate_user_mem,
 	SYS_free_user_mem ,
 	SYS_u_hard_limit,
+	SYS_env_set_nice,
 	//=====================================================================
 	NSYSCALLS
 
