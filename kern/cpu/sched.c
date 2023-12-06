@@ -161,27 +161,25 @@ void sched_init_MLFQ(uint8 numOfLevels, uint8 *quantumOfEachLevel)
 void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 {
 #if USE_KHEAP
-	//TODO: [PROJECT'23.MS3 - #4] [2] BSD SCHEDULER - sched_init_BSD
-	//Your code is here
-//	struct Env_Queue[];
-	for(int i = 0 ; i < numOfLevels ; i++)
-	{
-	struct Env_Queue myQueue ;
-	struct Env env;
-//	LIST_INSERT_TAIL(env_ready_queues,myQueue);
-	env_ready_queues->___ptr_next = myQueue;
-	}
-	//Comment the following line
-	//panic("Not implemented yet");
-	//=========================================
-	//DON'T CHANGE THESE LINES=================
-	scheduler_status = SCH_STOPPED;
-	scheduler_method = SCH_BSD;
-	//=========================================
-	//=========================================
+    num_of_ready_queues=numOfLevels;
+    env_ready_queues->size=num_of_ready_queues;
+    for(int i=0 ;i<num_of_ready_queues ;i++)
+    {
+        struct Env_Queue my_queue;
+        init_queue(&my_queue);
+        env_ready_queues[i]= my_queue;
+    }
+    quantums[0]=quantum;
+    //panic("Not implemented yet");
+
+    //=========================================
+    //DON'T CHANGE THESE LINES=================
+    scheduler_status = SCH_STOPPED;
+    scheduler_method = SCH_BSD;
+    //=========================================
+    //=========================================
 #endif
 }
-
 
 //=========================
 // [6] MLFQ Scheduler:
@@ -197,13 +195,26 @@ struct Env* fos_scheduler_MLFQ()
 //=========================
 struct Env* fos_scheduler_BSD()
 {
-	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
-	//Your code is here
-	//Comment the following line
-	panic("Not implemented yet");
-	return NULL;
-}
+    struct Env *required_env=NULL;
+    for(int i=num_of_ready_queues-1 ;i>=0 ;i++)
+    {
+        int size = queue_size(&env_ready_queues[i]);
+        if(size>0)
+        {
+            required_env=env_ready_queues[i].lh_first;
+            struct Env_Queue *queue =env_ready_queues+i; //need to discuss
+            remove_from_queue(queue ,required_env);      //need to discuss
+            break;
 
+        }
+    }
+    return required_env;
+    //TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
+    //Your code is here
+    //Comment the following line
+    //panic("Not implemented yet");
+    //return NULL;
+}
 //========================================
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)

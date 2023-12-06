@@ -120,8 +120,8 @@ struct Env {
 
 	int nice;
 	uint32 priority_value;
-	uint32 recent_cpu;
-	uint32 load_avg;
+	fixed_point_t recent_cpu;
+	fixed_point_t load_avg;
 
 #if USE_KHEAP
 	//struct WorkingSetElement* ptr_pageWorkingSet;
