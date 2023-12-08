@@ -171,7 +171,6 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
     }
     quantums[0]=quantum;
     //panic("Not implemented yet");
-
     //=========================================
     //DON'T CHANGE THESE LINES=================
     scheduler_status = SCH_STOPPED;
@@ -180,7 +179,6 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
     //=========================================
 #endif
 }
-
 //=========================
 // [6] MLFQ Scheduler:
 //=========================
@@ -196,7 +194,7 @@ struct Env* fos_scheduler_MLFQ()
 struct Env* fos_scheduler_BSD()
 {
     struct Env *required_env=NULL;
-    for(int i=num_of_ready_queues-1 ;i>=0 ;i++)
+    for(int i=num_of_ready_queues-1 ;i>=0 ;i--)
     {
         int size = queue_size(&env_ready_queues[i]);
         if(size>0)
@@ -213,7 +211,7 @@ struct Env* fos_scheduler_BSD()
     //Your code is here
     //Comment the following line
     //panic("Not implemented yet");
-    //return NULL;
+    //return NULL;
 }
 //========================================
 // [8] Clock Interrupt Handler

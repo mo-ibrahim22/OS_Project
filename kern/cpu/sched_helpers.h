@@ -7,9 +7,9 @@
 #endif
 
 #include <inc/environment_definitions.h>
-LIST_HEAD(Env_Queue, Env);	// Declares 'struct Env_Queue'
-LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
 
+LIST_HEAD(Env_Queue, Env);		// Declares 'struct Env_Queue'
+LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
 /*2023*/
 /********* for BSD Priority Scheduler *************/
 int env_get_nice(struct Env* e) ;
