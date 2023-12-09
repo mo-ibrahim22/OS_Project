@@ -10,6 +10,7 @@
 
 LIST_HEAD(Env_Queue, Env);		// Declares 'struct Env_Queue'
 LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
+fixed_point_t load_avg;
 /*2023*/
 /********* for BSD Priority Scheduler *************/
 int env_get_nice(struct Env* e) ;

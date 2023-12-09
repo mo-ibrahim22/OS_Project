@@ -2,7 +2,7 @@
 
 #ifndef FOS_INC_ENV_H
 #define FOS_INC_ENV_H
-
+#include<inc/fixed_point.h>
 #include <inc/types.h>
 #include <inc/queue.h>
 #include <inc/trap.h>
@@ -118,7 +118,7 @@ struct Env {
 	//================
 	int nice;
 	uint32 priority_value;
-	uint32 recent_cpu;
+	fixed_point_t recent_cpu;
 	//page working set management
 
 #if USE_KHEAP

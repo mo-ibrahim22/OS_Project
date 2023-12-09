@@ -1,7 +1,7 @@
 #include "sched.h"
 
 #include <inc/assert.h>
-
+#include<inc/fixed_point.h>    // we added it
 #include <kern/proc/user_environment.h>
 #include <kern/trap/trap.h>
 #include <kern/mem/kheap.h>
@@ -160,16 +160,21 @@ void sched_init_MLFQ(uint8 numOfLevels, uint8 *quantumOfEachLevel)
 //===============================
 void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 {
+	num_of_ready_queues=numOfLevels;
 #if USE_KHEAP
-    num_of_ready_queues=numOfLevels;
-    env_ready_queues->size=num_of_ready_queues;
+	sched_delete_ready_queues();
+	env_ready_queues = kmalloc(num_of_ready_queues*sizeof(struct Env_Queue));
+	quantums = kmalloc(num_of_ready_queues * sizeof(uint8)) ;
+    //env_ready_queues->size=num_of_ready_queues;
     for(int i=0 ;i<num_of_ready_queues ;i++)
     {
         struct Env_Queue my_queue;
         init_queue(&my_queue);
         env_ready_queues[i]= my_queue;
+        quantums[i]=quantum;
+        kclock_set_quantum (quantum);
     }
-    quantums[0]=quantum;
+
     //panic("Not implemented yet");
     //=========================================
     //DON'T CHANGE THESE LINES=================
@@ -200,12 +205,17 @@ struct Env* fos_scheduler_BSD()
         if(size>0)
         {
             required_env=env_ready_queues[i].lh_first;
-            struct Env_Queue *queue =env_ready_queues+i; //need to discuss
-            remove_from_queue(queue ,required_env);      //need to discuss
+           /* if (required_env != NULL)
+            {
+            	enqueue(&(env_ready_queues[0]), required_env);
+            }*/
+            struct Env_Queue queue =env_ready_queues[i]; //need to discuss
+            remove_from_queue(&queue ,required_env);      //need to discuss
             break;
 
         }
     }
+   // kclock_set_quantum (required_env);
     return required_env;
     //TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
     //Your code is here
@@ -217,18 +227,82 @@ struct Env* fos_scheduler_BSD()
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
+int num_of_ready_processes()
+{
+	int total_num=0;
+	for(int i=0 ;i<num_of_ready_queues ;i++)
+	{
+		int num_of_processes_in_queue = LIST_SIZE(&env_ready_queues[i]);
+		total_num+=num_of_processes_in_queue;
+	}
+	if(curenv!=NULL)
+		total_num+=1;
+	return total_num ;
+}
+void change_recent_cpu()
+{
+	// change recent_cpu for ready processes
+	for(int i=0 ;i<num_of_ready_queues;i++)
+	{
+		 struct Env *process;
+		 LIST_FOREACH( process, &env_ready_queues[i])
+		 {
+			// change recent_cpu
+			fixed_point_t r1 = fix_scale(load_avg,2); // before divide
+			fixed_point_t r2 = fix_add(r1 , fix_int(1));
+			fixed_point_t x1 = fix_div(r1 ,r2); // before *
+			fixed_point_t x2 = fix_mul(x1 ,process->recent_cpu);
+			fixed_point_t result = fix_add(x2 , fix_int(process->nice));
+			process->recent_cpu =result ;
+		 }
+	}
+	/*// change recent_cpu for running process
+	fixed_point_t r1 = fix_scale(load_avg,2); // before divide
+	fixed_point_t r2 = r1 + fix_int(1);
+	fixed_point_t x1 = fix_div(r1 ,r2); // before *
+	fixed_point_t x2 = fix_mul(x1 ,curenv.recent_cpu);
+	fixed_point_t result = fix_add(x2 , fix_int(curenv->nice));
+	curenv->recent_cpu = result;*/
+}
 void clock_interrupt_handler()
 {
+	  ticks++ ;  //--> the original space before don't change this line
+
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
+		// [a] at each second
+		if(ticks%1000==0) // at each second
+		{
+		// [1-a] change load average    equation = (59/60)*load_avg + (1/60) *ready_processes
+		fixed_point_t n1 =fix_int(59);
+		fixed_point_t n2 =fix_int(60);
+		fixed_point_t r1 =fix_div(n1,n2);  //(59/60)
+		fixed_point_t r2=fix_mul(r1 , load_avg);  // before pluss
 
+		fixed_point_t n3 =fix_int(1);
+		fixed_point_t n4 =fix_int(60);
+		fixed_point_t r3 =fix_div(n3,n4);  //(1/60)
 
+		int ready_process = num_of_ready_processes();
+		fixed_point_t r4 = fix_scale(r3 , ready_process); // after plus
+		load_avg = fix_add(r2 , r4); // result of equation  (updated load_avg)
+		//[2-a] change recent_cpu for all ready_processes and running one
+		change_recent_cpu();
+		}
+		// change the recent_cpu for running process each one tick
+		fixed_point_t r1 = fix_scale(load_avg,2); // before divide
+		fixed_point_t r2 = fix_add(r1 , fix_int(1));
+		fixed_point_t x1 = fix_div(r1 ,r2); // before *
+		fixed_point_t x2 = fix_mul(x1 ,curenv->recent_cpu);
+		fixed_point_t result = fix_add(x2 , fix_int(curenv->nice));
+		curenv->recent_cpu = result;
+		//change priority for running process
 
 	}
 
 
 	/********DON'T CHANGE THIS LINE***********/
-	ticks++ ;
+
 	if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_TIME_APPROX))
 	{
 		update_WS_time_stamps();
