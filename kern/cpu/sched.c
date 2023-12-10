@@ -68,6 +68,7 @@ fos_scheduler(void)
 		//uint16 cnt0 = kclock_read_cnt0_latch() ;
 		//cprintf("CLOCK INTERRUPT AFTER RESET: Counter0 Value = %d\n", cnt0 );
 
+
 	}
 	else if (scheduler_method == SCH_MLFQ)
 	{
@@ -164,16 +165,16 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 #if USE_KHEAP
 	sched_delete_ready_queues();
 	env_ready_queues = kmalloc(num_of_ready_queues*sizeof(struct Env_Queue));
-	quantums = kmalloc(num_of_ready_queues * sizeof(uint8)) ;
+	quantums = kmalloc(sizeof(uint8)) ;
     //env_ready_queues->size=num_of_ready_queues;
     for(int i=0 ;i<num_of_ready_queues ;i++)
     {
         struct Env_Queue my_queue;
         init_queue(&my_queue);
         env_ready_queues[i]= my_queue;
-        quantums[i]=quantum;
-        kclock_set_quantum (quantum);
     }
+    quantums[0]=quantum;
+    kclock_set_quantum (quantums[0]);
 
     //panic("Not implemented yet");
     //=========================================
@@ -204,18 +205,27 @@ struct Env* fos_scheduler_BSD()
         int size = queue_size(&env_ready_queues[i]);
         if(size>0)
         {
-            required_env=env_ready_queues[i].lh_first;
-           /* if (required_env != NULL)
-            {
-            	enqueue(&(env_ready_queues[0]), required_env);
-            }*/
-            struct Env_Queue queue =env_ready_queues[i]; //need to discuss
-            remove_from_queue(&queue ,required_env);      //need to discuss
-            break;
+        	if (curenv != NULL)
+			{
+				enqueue(&(env_ready_queues[i]), curenv);
+			}
+        	required_env = dequeue(&(env_ready_queues[i]));
+    		//kclock_set_quantum(quantums[0]);
 
+            //required_env = env_ready_queues[i].lh_first;
+            //sched_remove_ready(required_env);
+
+            //struct Env_Queue queue =env_ready_queues[i]; //need to discuss
+            //cprintf("");
+
+            //remove_from_queue(&queue ,);      //need to discuss
+             break;
         }
     }
-   // kclock_set_quantum (required_env);
+   // kclock_set_quantum(quantums[0]);   //---> need to discuss if use it or not and if yes in loop or out loop
+
+    if(required_env != NULL)
+    	cprintf("The env =%x\n",required_env->env_id);
     return required_env;
     //TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
     //Your code is here
@@ -266,12 +276,12 @@ void change_recent_cpu()
 }
 void clock_interrupt_handler()
 {
-	  ticks++ ;  //--> the original space before don't change this line
+
 
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
 		// [a] at each second
-		if(ticks%1000==0) // at each second
+		if(timer_ticks()*quantums[0]%1000==0) // at each second   ( ticks % 1000 == 0)
 		{
 		// [1-a] change load average    equation = (59/60)*load_avg + (1/60) *ready_processes
 		fixed_point_t n1 =fix_int(59);
@@ -289,20 +299,33 @@ void clock_interrupt_handler()
 		//[2-a] change recent_cpu for all ready_processes and running one
 		change_recent_cpu();
 		}
-		// change the recent_cpu for running process each one tick
+		//[b] change the recent_cpu for running process each one tick
 		fixed_point_t r1 = fix_scale(load_avg,2); // before divide
 		fixed_point_t r2 = fix_add(r1 , fix_int(1));
 		fixed_point_t x1 = fix_div(r1 ,r2); // before *
 		fixed_point_t x2 = fix_mul(x1 ,curenv->recent_cpu);
 		fixed_point_t result = fix_add(x2 , fix_int(curenv->nice));
 		curenv->recent_cpu = result;
-		//change priority for running process
+		//[c]change priority for running process at each 4 ticks
+		if(timer_ticks()%4==0)
+		{
+			// change the priority
+			 fixed_point_t r1 = fix_int(PRI_MAX);   // you need to check if the PRI_MAX is int
+			 fixed_point_t x = fix_int(4);
+			 fixed_point_t r2 =  fix_div(curenv->recent_cpu , x);
+			 fixed_point_t x2  = fix_int(curenv->nice);
+			 fixed_point_t r3 = fix_scale(x2 ,2);
+
+			 fixed_point_t rs1 = fix_sub(r1 ,r2);
+			 fixed_point_t result =fix_sub(rs1 ,r3);
+			 curenv->priority_value = fix_trunc(result);
+		}
 
 	}
 
 
 	/********DON'T CHANGE THIS LINE***********/
-
+	ticks++ ;
 	if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_TIME_APPROX))
 	{
 		update_WS_time_stamps();

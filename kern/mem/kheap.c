@@ -33,13 +33,13 @@ void dellocateAndUnMapFrames(uint32 StartOfDeallocation , uint32 sizeToDeallocat
 	for(int i=0 ;i<cnt ;i++)
 	{
 		uint32* ptr_page_table = NULL;
-	   //get the page table.
+	   /*//get the page table.
 	   get_page_table(ptr_page_directory, va, &ptr_page_table);
 	   //uint32 target_page_address = ptr_page_table[PTX((uint32)virtual_address)];
 	   // get the frame from page table.
 	   struct FrameInfo * target_frame = get_frame_info(ptr_page_directory, va, &ptr_page_table);
 	   target_frame->va = (uint32)0;
-	   free_frame(target_frame);
+	   free_frame(target_frame);*/
 	   //unmap frames
 	   unmap_frame(ptr_page_directory ,va);
 	   va -= PAGE_SIZE ;
@@ -302,14 +302,14 @@ void kfree(void* virtual_address)
     	// unmap
 
     	for(int i = 0 ; i < cnt; i++){
-    		 uint32* ptr_page_table = NULL;
+    		 /*uint32* ptr_page_table = NULL;
 			  // get the page table.
 			   get_page_table(ptr_page_directory, targrt_va, &ptr_page_table);
 			   //uint32 target_page_address = ptr_page_table[PTX((uint32)virtual_address)];
 			  // get the frame from page table.
 			  struct FrameInfo * target_frame = get_frame_info(ptr_page_directory, targrt_va, &ptr_page_table);
 			  target_frame->va = (uint32)0;
-			  free_frame(target_frame);
+			  free_frame(target_frame);*/
 			  unmap_frame(ptr_page_directory,targrt_va);
 
     	   targrt_va += PAGE_SIZE;

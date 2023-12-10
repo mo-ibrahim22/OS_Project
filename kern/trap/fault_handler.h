@@ -13,6 +13,7 @@
 #include <inc/types.h>
 #include <inc/environment_definitions.h>
 
+
 /******************************/
 /*	DATA 					  */
 /******************************/
@@ -61,6 +62,13 @@ void enableBuffering(uint32 enableIt);
 uint8 isBufferingEnabled() ;
 void setModifiedBufferLength(uint32 length) ;
 uint32 getModifiedBufferLength();
+
+//===============================
+// Added By Farouk
+//===============================
+
+void add_WS_element_FIFO_placement(struct WorkingSetElement* new_workingset_element, uint32 wsSize);
+void add_WS_element_LRU_placement(uint32 fault_va);
 
 //===============================
 // FAULT HANDLERS
