@@ -36,6 +36,9 @@ uint32 arr_user_va [NUM_OF_UHEAP_PAGES];
 uint32 size_user_va [NUM_OF_UHEAP_PAGES];
 uint32 user_page_status[NUM_OF_UHEAP_PAGES];
 struct  Env currenv ;
+
+
+
 void* malloc(uint32 size)
 {
 	//==============================================================
@@ -49,16 +52,27 @@ void* malloc(uint32 size)
 
 	 if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
 	 {
+		//cprintf("BLOCK\n");
 		void* pointer_ = alloc_block_FF(size);
 		return pointer_ ;
 	 }
 
 	 else
 	 {
+		 //cprintf("1\n");
 		 int num_of_page_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
 		 uint32  hardLimt = (uint32) sys_u_hard_limit();
 
-		 uint32 va_to_check = hardLimt + PAGE_SIZE ;
+		 uint32 va_to_check;
+		 if(u_tracked_va == 0 || u_tracked_size > ROUNDUP(size, PAGE_SIZE))
+		  {
+
+			 va_to_check = hardLimt + PAGE_SIZE ;
+		  }
+		  else
+		  {
+			 va_to_check = u_tracked_va;
+		  }
 		 int cnt = 0 ;
 
 		 int is_found =0 ;
@@ -67,7 +81,10 @@ void* malloc(uint32 size)
 		 {
 
 			 if(is_found==1)
+			 {
 			     break;
+			 }
+
 			     uint32 index = (va_to_check / PAGE_SIZE) - ((hardLimt + PAGE_SIZE) / PAGE_SIZE );
 				 uint32 target_value =  user_page_status[index] ;  // target value = 0 then page is free   else page not free
 				 if(target_value==(uint32)0)
@@ -86,7 +103,7 @@ void* malloc(uint32 size)
 
 			 va_to_check+=PAGE_SIZE ;
 		 }
-
+		 //cprintf("2\n");
 		 if(is_found==0)
 		     return NULL ;
 		 else
@@ -96,23 +113,27 @@ void* malloc(uint32 size)
 			 {
 				 user_page_status[i]=(uint32)1;
 			 }
-			 for(int i=0 ;i< NUM_OF_UHEAP_PAGES;i++)
+			 for(int i=u_tracked_index ;i< NUM_OF_UHEAP_PAGES;i++)
 			 {
 				 if(arr_user_va[i]==(uint32)0)
 				 {
 					 arr_user_va[i]=base_address;
 					 size_user_va[i]=ROUNDUP(size, PAGE_SIZE);
+					 u_tracked_index++;
 					 break;
 				 }
 			 }
+			 u_tracked_va = base_address + ROUNDUP(size, PAGE_SIZE);
+			 u_tracked_size = ROUNDUP(size, PAGE_SIZE);
+			 //cprintf("3\n");
 			 sys_allocate_user_mem(base_address, ROUNDUP(size, PAGE_SIZE));    // don't forget to round in sys_allcate
-			 int cnt1 =0 ;
+			 /*int cnt1 =0 ;
 
 			 for(int i=0 ;i<NUM_OF_UHEAP_PAGES ;i++)
 			 {
 				 if(user_page_status[i]==1)
 					 cnt1++;
-			 }
+			 }*/
 			 return (void*)base_address;
 		 }
 	 }
@@ -143,6 +164,9 @@ void free(void* virtual_address)
 	 }
 	 else
 	 {
+		 //
+		 u_tracked_va = 0;
+		 //
 		 //step1 get the size which was taken by the virtual_address
 		 uint32 size_taken_for_va;
 		 for(int i=0 ;i< NUM_OF_UHEAP_PAGES;i++)
@@ -150,6 +174,9 @@ void free(void* virtual_address)
 			 if(arr_user_va[i]==(uint32)virtual_address)
 			 {
 				 size_taken_for_va = size_user_va[i];
+				 arr_user_va[i] = (uint32)0;
+				 size_user_va[i] = (uint32)0;
+				 u_tracked_index = i;
 				 break;
 			 }
 		 }

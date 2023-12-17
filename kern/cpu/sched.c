@@ -51,11 +51,11 @@ fos_scheduler(void)
 		// Pick next environment from the ready queue,
 		// and switch to such environment if found.
 		// It's OK to choose the previously running env if no other env
-		// is runnable.
-
+		// is runnable.0
 		//If the curenv is still exist, then insert it again in the ready queue
 		if (curenv != NULL)
 		{
+			//cprintf("\n1\n");
 			enqueue(&(env_ready_queues[0]), curenv);
 		}
 
@@ -85,7 +85,6 @@ fos_scheduler(void)
 	chk2(next_env) ;
 	curenv = old_curenv;
 
-	//sched_print_all();
 
 	if(next_env != NULL)
 	{
@@ -165,15 +164,17 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 #if USE_KHEAP
 	sched_delete_ready_queues();
 	env_ready_queues = kmalloc(num_of_ready_queues*sizeof(struct Env_Queue));
-	quantums = kmalloc(sizeof(uint8)) ;
+	quantums = kmalloc(num_of_ready_queues*sizeof(uint8)) ;  ///### ask here ####//
     //env_ready_queues->size=num_of_ready_queues;
     for(int i=0 ;i<num_of_ready_queues ;i++)
     {
         struct Env_Queue my_queue;
         init_queue(&my_queue);
         env_ready_queues[i]= my_queue;
+
     }
-    quantums[0]=quantum;
+
+    quantums[0]=quantum;                //### ask here###//
     kclock_set_quantum (quantums[0]);
 
     //panic("Not implemented yet");
@@ -197,36 +198,67 @@ struct Env* fos_scheduler_MLFQ()
 //=========================
 // [7] BSD Scheduler:
 //=========================
+/*int total()
+	{
+		int x= 0 ;
+		// change recent_cpu for ready processes
+		for(int i=0 ;i<num_of_ready_queues;i++)
+		{
+			 struct Env *process;
+			 LIST_FOREACH( process, &env_ready_queues[i])
+			 {
+				 if(process!=NULL)
+				 {
+					 x++;
+				 }
+			 }
+		}
+		return x ;
+	}*/
+//int flag = 0;
 struct Env* fos_scheduler_BSD()
 {
+
+	//sched_print_all();
+	if (curenv != NULL)
+	{
+		//cprintf("IN ### BSD #### Current Env ID is %d With old Priority %d \n",curenv->env_id,curenv->priority_value);
+
+		enqueue(&env_ready_queues[curenv->priority_value], curenv);
+
+	}
     struct Env *required_env=NULL;
     for(int i=num_of_ready_queues-1 ;i>=0 ;i--)
     {
+
         int size = queue_size(&env_ready_queues[i]);
         if(size>0)
         {
-        	if (curenv != NULL)
-			{
-				enqueue(&(env_ready_queues[i]), curenv);
-			}
-        	required_env = dequeue(&(env_ready_queues[i]));
-    		//kclock_set_quantum(quantums[0]);
-
+            //cprintf("the size =->>>>>>> ======== %d and  in queue num ==== %d\n",size,i);
+        	required_env = dequeue(&env_ready_queues[i]);
+        	/*if(required_env!=NULL)
+        		cprintf("deleted env id ================ %d\n",required_env->env_id);*/
             //required_env = env_ready_queues[i].lh_first;
             //sched_remove_ready(required_env);
 
             //struct Env_Queue queue =env_ready_queues[i]; //need to discuss
-            //cprintf("");
-
             //remove_from_queue(&queue ,);      //need to discuss
+
              break;
         }
-    }
-   // kclock_set_quantum(quantums[0]);   //---> need to discuss if use it or not and if yes in loop or out loop
 
-    if(required_env != NULL)
-    	cprintf("The env =%x\n",required_env->env_id);
-    return required_env;
+    }
+   // cprintf("num of process = %d",total());l
+
+    //#############   ask here  #################################//
+     kclock_set_quantum(quantums[0]);   //---> need to discuss if use it or not and if yes in loop or out loop
+
+    /*if(required_env != NULL)
+    	cprintf("The env =%x\n",required_env->env_id);*/
+
+	//sched_print_all();
+   // cprintf("env id returned ==== #### ====== %d",required_env->env_id);
+    	return required_env;
     //TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
     //Your code is here
     //Comment the following line
@@ -274,6 +306,40 @@ void change_recent_cpu()
 	fixed_point_t result = fix_add(x2 , fix_int(curenv->nice));
 	curenv->recent_cpu = result;*/
 }
+
+void change_priority()
+{
+	// change recent_cpu for ready processes
+	for(int i=0 ;i<num_of_ready_queues;i++)
+	{
+		 struct Env *process;
+
+		 LIST_FOREACH( process, &env_ready_queues[i])
+		 {
+			 fixed_point_t r1 = fix_int(PRI_MAX);   // you need to check if the PRI_MAX is int
+			 fixed_point_t x = fix_int(4);
+			 fixed_point_t r2 =  fix_div(process->recent_cpu , x);
+			 fixed_point_t x2  = fix_int(process->nice);
+			 fixed_point_t r3 = fix_scale(x2 ,2);
+
+			 fixed_point_t rs1 = fix_sub(r1 ,r2);
+			 fixed_point_t result =fix_sub(rs1 ,r3);
+
+			 int priority = fix_trunc(result);
+			 if(priority>num_of_ready_queues-1)
+				 priority=num_of_ready_queues-1;
+			 else if(priority<PRI_MIN)
+				 priority=PRI_MIN;
+			 if(process->priority_value != priority)
+			 {
+				 remove_from_queue(&env_ready_queues[process->priority_value],process);
+				 process->priority_value = priority;
+				 enqueue(&env_ready_queues[process->priority_value], process);
+			 }
+		 }
+	}
+
+}
 void clock_interrupt_handler()
 {
 
@@ -318,12 +384,26 @@ void clock_interrupt_handler()
 
 			 fixed_point_t rs1 = fix_sub(r1 ,r2);
 			 fixed_point_t result =fix_sub(rs1 ,r3);
-			 curenv->priority_value = fix_trunc(result);
+
+			 int priority = fix_trunc(result);
+			 if(priority>num_of_ready_queues-1)
+				 priority=num_of_ready_queues-1;
+			 else if(priority<PRI_MIN)
+				 priority=PRI_MIN;
+
+			 curenv->priority_value = priority;
+			 // update for all ready processes
+			 change_priority();
+			/* cprintf("IN ### INTERRUPT #### Current Env ID is %d With old Priority %d New priority%d \n",curenv->env_id,curenv->priority_value,priority);
+			 sched_print_all();*/
+			 /*struct Env_Queue queue =env_ready_queues[curenv->priority_value]; //need to discuss
+			 remove_from_queue(&queue ,curenv);*/
+			 //remove_from_queue(&env_ready_queues[curenv->priority_value],curenv);
+		     //enqueue(&env_ready_queues[curenv->priority_value], curenv);
+		     //LIST_INSERT_TAIL(&env_ready_queues[curenv->priority_value] ,curenv) ;
+		     //sched_print_all();
 		}
-
 	}
-
-
 	/********DON'T CHANGE THIS LINE***********/
 	ticks++ ;
 	if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_TIME_APPROX))
