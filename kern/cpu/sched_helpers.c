@@ -599,7 +599,7 @@ void env_set_nice(struct Env* e, int nice_value)
     }
 
     e->nice = nice_value;
-
+    cprintf(" nice value : %d \n", e->nice);
 
 
     //update recent_cpu

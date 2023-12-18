@@ -454,9 +454,9 @@ uint32 sys_u_hard_limit ()
 	return curenv->Uhard_limit;
 }
 
-void sys_env_set_nice(struct Env* e, int nice_value)
+void sys_env_set_nice(int nice_value)
 {
-    env_set_nice(e, nice_value);
+    env_set_nice(curenv, nice_value);
 }
 
 //Place a new env into the READY queue
@@ -815,7 +815,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		return sys_u_hard_limit();
 
 	case SYS_env_set_nice:
-	     sys_env_set_nice((struct Env*)a1, (int)a2);
+	     sys_env_set_nice((int)a1);
 	          return 0;
 	          break;
 
