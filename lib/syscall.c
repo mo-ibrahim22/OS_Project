@@ -344,15 +344,9 @@ uint32 sys_u_hard_limit()
 	return syscall(SYS_u_hard_limit, 0, 0, 0, 0, 0);
 }
 
-<<<<<<< HEAD
-void sys_env_set_nice(int nice_value )
-{
-    syscall(SYS_env_set_nice, (uint32)nice_value, 0, 0, 0, 0);
-=======
 void sys_env_set_nice(int nice_value)
 {
     syscall(SYS_env_set_nice, (uint32)nice_value,0, 0, 0, 0);
->>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
