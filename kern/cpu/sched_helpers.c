@@ -125,7 +125,9 @@ void sched_insert_ready0(struct Env* env)
 	if(env != NULL)
 	{
 		env->env_status = ENV_READY ;
-		enqueue(&(env_ready_queues[0]), env);
+		//cprintf("\n2\n");
+		enqueue(&env_ready_queues[env->priority_value], env);
+		//enqueue(&(env_ready_queues[0]), env);
 	}
 }
 
@@ -158,6 +160,7 @@ void sched_insert_new(struct Env* env)
 	if(env != NULL)
 	{
 		env->env_status = ENV_NEW ;
+		//cprintf("\n3\n");
 		enqueue(&env_new_queue, env);
 	}
 }
@@ -183,6 +186,7 @@ void sched_insert_exit(struct Env* env)
 	{
 		if(isBufferingEnabled()) {cleanup_buffers(env);}
 		env->env_status = ENV_EXIT ;
+		//cprintf("\n4\n");
 		enqueue(&env_exit_queue, env);
 	}
 }
@@ -437,6 +441,25 @@ void sched_print_all()
 	}
 }
 
+
+/*int total()
+	{
+		int x= 0 ;
+		// change recent_cpu for ready processes
+		for(int i=0 ;i<num_of_ready_queues;i++)
+		{
+			 struct Env *process;
+			 LIST_FOREACH( process, &env_ready_queues[i])
+			 {
+				 if(process!=NULL)
+				 {
+					 cprintf("env_id = %d and in queue num =  %d \n" ,process->env_id ,i);
+					 x++;
+				 }
+			 }
+		}
+		return x ;
+	}*/
 //=================================================
 // [13] MOVE ALL NEW Envs into READY Q:
 //=================================================
@@ -574,7 +597,9 @@ void env_set_nice(struct Env* e, int nice_value)
     {
         nice_value = 20;
     }
+
     e->nice = nice_value;
+<<<<<<< HEAD
 
     //cprintf(" nice value : %d \n", e->nice);
     //
@@ -610,18 +635,74 @@ void env_set_nice(struct Env* e, int nice_value)
 		//cprintf("envId = %d with nice_value = %d and priority = %d and recent cpu = %d\n",e->env_id ,e->nice ,e->priority_value,e->recent_cpu );
 		//
     }
+=======
+    cprintf(" nice value : %d \n", e->nice);
+
+
+    //update recent_cpu
+    fixed_point_t h1 = fix_scale(load_avg,2); // before divide
+	fixed_point_t h2 = fix_add(h1 , fix_int(1));
+	fixed_point_t y1 = fix_div(h1 ,h2); // before *
+	fixed_point_t y2 = fix_mul(y1 ,e->recent_cpu);
+	fixed_point_t result1 = fix_add(y2 , fix_int(e->nice));
+	e->recent_cpu = result1;
+    // update the priority of the env
+     fixed_point_t r1 = fix_int(PRI_MAX);   // you need to check if the PRI_MAX is int
+	 fixed_point_t x = fix_int(4);
+	 fixed_point_t r2 =  fix_div(e->recent_cpu , x);
+	 fixed_point_t x2  = fix_int(e->nice);
+	 fixed_point_t r3 = fix_scale(x2 ,2);
+
+	 fixed_point_t rs1 = fix_sub(r1 ,r2);
+	 fixed_point_t result =fix_sub(rs1 ,r3);
+	 //struct Env_Queue queue =env_ready_queues[curenv->priority_value]; //need to discuss
+	 int priority = fix_trunc(result);
+	 if(priority>num_of_ready_queues-1)
+		 priority=num_of_ready_queues-1;
+	 else if(priority<PRI_MIN)
+		 priority=PRI_MIN;
+
+	//cprintf("IN ### SET NICE #### Current Env ID is %d With old Priority %d New priority%d \n",e->env_id,e->priority_value,priority);
+	//sched_print_all();
+	//struct Env_Queue queue = //need to discuss
+	//remove_from_queue(&env_ready_queues[e->priority_value] ,e);
+	e->priority_value = priority;
+	//enqueue(&env_ready_queues[priority], e);
+	cprintf("envId = %d with nice_value = %d and priority = %d\n",e->env_id ,e->nice ,e->priority_value );
+
+	//sched_print_all();
+
+
+    //Comment the following line
+//    panic("Not implemented yet");
+>>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 }
 int env_get_recent_cpu(struct Env* e)
 {
     //TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_recent_cpu
+<<<<<<< HEAD
 	 return fix_round(fix_scale(e->recent_cpu,100));
 
+=======
+
+	 return fix_round(fix_scale(e->recent_cpu,100));
+//    panic("Not implemented yet");
+     return 0;
+>>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 }
 int get_load_average()
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - get_load_average
+<<<<<<< HEAD
     return fix_round(fix_scale(load_avg,100));
 
+=======
+	//Your code is here
+	//Comment the following line
+    return fix_round(fix_scale(load_avg,100));
+	//panic("Not implemented yet");
+	return 0;
+>>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 }
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//
