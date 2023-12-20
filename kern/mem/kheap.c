@@ -33,13 +33,13 @@ void dellocateAndUnMapFrames(uint32 StartOfDeallocation , uint32 sizeToDeallocat
 	for(int i=0 ;i<cnt ;i++)
 	{
 		uint32* ptr_page_table = NULL;
-	   //get the page table.
+	   /*//get the page table.
 	   get_page_table(ptr_page_directory, va, &ptr_page_table);
 	   //uint32 target_page_address = ptr_page_table[PTX((uint32)virtual_address)];
 	   // get the frame from page table.
 	   struct FrameInfo * target_frame = get_frame_info(ptr_page_directory, va, &ptr_page_table);
 	   target_frame->va = (uint32)0;
-	   free_frame(target_frame);
+	   free_frame(target_frame);*/
 	   //unmap frames
 	   unmap_frame(ptr_page_directory ,va);
 	   va -= PAGE_SIZE ;
@@ -98,6 +98,7 @@ void* increment_break_pointer(int increment)
 		uint32 previous_brk_ptr = brk_pointer ;
 		brk_pointer = new_brk ;
 		allocateAndMapFrames(ROUNDUP(previous_brk_ptr, PAGE_SIZE) ,size_to_increment) ;
+		//return (void*)previous_brk_ptr ;
 		return (void*) ROUNDUP(previous_brk_ptr, PAGE_SIZE) ;
 	}
 }
@@ -163,6 +164,7 @@ void* sbrk(int increment)
 
 uint32 arr_va [NUM_OF_KHEAP_PAGES];
 uint32 size_va [NUM_OF_KHEAP_PAGES];
+
 void* kmalloc(unsigned int size)
 {
      if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
@@ -178,8 +180,25 @@ void* kmalloc(unsigned int size)
     	 //cprintf("the size is %d\n",size);
     	 //cprintf("the num of pages %d\n",num_of_page_to_allocate);
     	 uint32 arr_of_page_adresses[num_of_page_to_allocate];
-    	 //cprintf("hereeeeee kmalloc 2\n");
-    	 uint32 va_to_check = hard_limit + PAGE_SIZE ;
+    	 //
+    	 uint32 va_to_check ;
+         if(tracked_va == 0 || tracked_size > ROUNDUP(size, PAGE_SIZE))
+         {
+
+        	 va_to_check = hard_limit + PAGE_SIZE ;
+         }
+         else
+         {
+        	 va_to_check = tracked_va;
+         }
+
+//    	 if(entered_free > 0)
+//    	 {
+//        	 va_to_check = hard_limit + PAGE_SIZE ;
+//        	 entered_free--;
+//    	 }
+    	 //
+
     	 int cnt = 0 ;
     	 int is_allocated =0 ;
     	 while(va_to_check<KERNEL_HEAP_MAX)
@@ -237,18 +256,19 @@ void* kmalloc(unsigned int size)
     		 return NULL ;
     	 else
     	 {
-    		 for(int i=0 ;i<NUM_OF_KHEAP_PAGES ;i++)
+    		 for(int i=tracked_index ;i<NUM_OF_KHEAP_PAGES ;i++)
     		 {
     			 if(arr_va[i]==(uint32)0)
     			 {
     				// cprintf("i'm in the target loop \n");
     				 arr_va[i]=arr_of_page_adresses[0] ;
     				 size_va[i]=(uint32)size;
+    				 tracked_index++;
     				 break;
     			 }
     		 }
-
-    		// cprintf("i'm finsihed with  va %d\n",arr_of_page_adresses[0]);
+            tracked_va = arr_of_page_adresses[num_of_page_to_allocate - 1] + PAGE_SIZE;
+            tracked_size = ROUNDUP(size, PAGE_SIZE);
     		 return (void*)arr_of_page_adresses[0]; /*---------><-------*/
     	 }
     	// cprintf("hereeeeee 9\n");
@@ -281,8 +301,14 @@ void kfree(void* virtual_address)
     }
     else if((uint32)virtual_address >= (hard_limit + PAGE_SIZE) &&(uint32)virtual_address  <KERNEL_HEAP_MAX)
     {
+
+    	//
+    	tracked_va = 0;
+    	//
     	//cprintf("here 2\n");
     	//cprintf("current virtual address is %d" , (uint32)virtual_address);
+
+    	//entered_free++;
 
     	uint32 targrt_va ,target_size;
     	for(int i=0 ;i<NUM_OF_KHEAP_PAGES ;i++)
@@ -294,6 +320,7 @@ void kfree(void* virtual_address)
     			target_size =size_va[i];
     			size_va[i]=(uint32)0 ;
     			arr_va[i]=(uint32)0;
+    			tracked_index = i;
     			break ;
     		}
     	}
@@ -302,18 +329,19 @@ void kfree(void* virtual_address)
     	// unmap
 
     	for(int i = 0 ; i < cnt; i++){
-    		 uint32* ptr_page_table = NULL;
+    		 /*uint32* ptr_page_table = NULL;
 			  // get the page table.
 			   get_page_table(ptr_page_directory, targrt_va, &ptr_page_table);
 			   //uint32 target_page_address = ptr_page_table[PTX((uint32)virtual_address)];
 			  // get the frame from page table.
 			  struct FrameInfo * target_frame = get_frame_info(ptr_page_directory, targrt_va, &ptr_page_table);
 			  target_frame->va = (uint32)0;
-			  free_frame(target_frame);
+			  free_frame(target_frame);*/
 			  unmap_frame(ptr_page_directory,targrt_va);
 
     	   targrt_va += PAGE_SIZE;
     	 }
+
     	/*cprintf("here 2\n");
     	uint32 new_va =(uint32)virtual_address;
     	//new_va = ROUNDDOWN(new_va , PAGE_SIZE);

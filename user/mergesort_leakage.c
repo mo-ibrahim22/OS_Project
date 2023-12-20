@@ -180,9 +180,7 @@ void MSort(int* A, int p, int r)
 	}
 
 	int q = (p + r) / 2;
-
 	MSort(A, p, q);
-
 	MSort(A, q + 1, r);
 
 	Merge(A, p, q, r);
@@ -191,6 +189,7 @@ void MSort(int* A, int p, int r)
 
 void Merge(int* A, int p, int q, int r)
 {
+	//cprintf("Here\n");
 	int leftCapacity = q - p + 1;
 
 	int rightCapacity = r - q;
@@ -200,7 +199,6 @@ void Merge(int* A, int p, int q, int r)
 	int rightIndex = 0;
 
 	int* Left = malloc(sizeof(int) * leftCapacity);
-
 	int* Right = malloc(sizeof(int) * rightCapacity);
 
 	//	int Left[5000] ;

@@ -176,6 +176,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	//return;
 	/*==========================================================================*/
 
+	//cprintf("Called free with address %x and size %d\n", virtual_address, size);
 	// Write your code here, remove the panic and write your code
 	//panic("free_user_mem() is not implemented yet...!!");
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
@@ -186,6 +187,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	 * 3- remove the pages from working set (using invalidate)
 	 * 4- remove these pages from page file (working set)
 	 */
+
 	// determine the number of pages to work on
 	 int num_of_pages = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
 	 uint32 base_address_of_each_page = virtual_address ;

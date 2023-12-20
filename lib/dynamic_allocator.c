@@ -109,7 +109,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 int enter_reallocate = 0;
 
-int cnt = 0;
+//int cnt = 0;
 void *alloc_block_FF(uint32 size)
 {
 	//print_blocks_list(blockList);
@@ -135,6 +135,10 @@ void *alloc_block_FF(uint32 size)
 
     if(tracked_block == NULL || tracked_block->size > (size + sizeOfMetaData()))
     {
+    	//cprintf("m4 mazbot\n");
+    	/*if(tracked_block != NULL)
+    		cprintf("tracked_block %d, (size + sizeOfMetaData()%d" ,tracked_block->size ,(size + sizeOfMetaData()));
+    	*/
     	cr_Block = LIST_FIRST(&blockList);
     }
     else if (enter_reallocate == 1)
@@ -144,6 +148,7 @@ void *alloc_block_FF(uint32 size)
     }
     else
     {
+    	//cprintf("mazbot\n");
     	cr_Block = tracked_block;
     }
 

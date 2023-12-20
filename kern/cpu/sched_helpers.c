@@ -49,6 +49,7 @@ int queue_size(struct Env_Queue* queue)
 void enqueue(struct Env_Queue* queue, struct Env* env)
 {
 	assert(queue != NULL)	;
+	//cprintf("IN ENQUE with queue %x and ENV ID is %d\n", queue, env->env_id);
 	if(env != NULL)
 	{
 		LIST_INSERT_HEAD(queue, env);
@@ -75,7 +76,6 @@ struct Env* dequeue(struct Env_Queue* queue)
 void remove_from_queue(struct Env_Queue* queue, struct Env* e)
 {
 	assert(queue != NULL)	;
-
 	if (e != NULL)
 	{
 		LIST_REMOVE(queue, e);
@@ -148,6 +148,7 @@ void sched_remove_ready(struct Env* env)
 		}
 	}
 }
+
 
 //=================================================
 // [4] Insert the given Env in NEW Queue:
@@ -413,12 +414,14 @@ void sched_print_all()
 			{
 				cprintf("	[%d] %s\n", ptr_env->env_id, ptr_env->prog_name);
 			}
+			cprintf("================================================\n");
+
 		}
 		else
 		{
-			cprintf("No processes in READY queue #%d\n", i);
+			//cprintf("No processes in READY queue #%d\n", i);
 		}
-		cprintf("================================================\n");
+		//cprintf("================================================\n");
 	}
 	if (!LIST_EMPTY(&env_exit_queue))
 	{
@@ -439,12 +442,22 @@ void sched_print_all()
 //=================================================
 void sched_run_all()
 {
+
 	struct Env* ptr_env=NULL;
-	LIST_FOREACH(ptr_env, &env_new_queue)
+	//Suggested Solution
+	int new_queue_size = queue_size(&env_new_queue);
+	while(new_queue_size > 0)
 	{
-		sched_remove_new(ptr_env);
+		ptr_env = dequeue(&env_new_queue);
 		sched_insert_ready0(ptr_env);
+		new_queue_size--;
 	}
+
+		/*LIST_FOREACH(ptr_env, &env_new_queue)
+		{
+			sched_remove_new(ptr_env);
+			sched_insert_ready0(ptr_env);
+		}*/
 	/*2015*///if scheduler not run yet, then invoke it!
 	if (scheduler_status == SCH_STOPPED)
 		fos_scheduler();
@@ -543,17 +556,17 @@ int64 timer_ticks()
 int env_get_nice(struct Env* e)
 {
     //TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_nice
-    //Your code is here
     return e->nice;
-    //Comment the following line
-    //panic("Not implemented yet");
-    return 0;
+
 }
 void env_set_nice(struct Env* e, int nice_value)
 {
+
     //TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
-    //Your code is here
-    if (nice_value < -20)
+
+	//
+	// update the nice value of the given environment
+	if (nice_value < -20)
     {
         nice_value = -20;
     }
@@ -562,24 +575,53 @@ void env_set_nice(struct Env* e, int nice_value)
         nice_value = 20;
     }
     e->nice = nice_value;
-    //Comment the following line
-//    panic("Not implemented yet");
+
+    //cprintf(" nice value : %d \n", e->nice);
+    //
+
+    //
+    // if the environment is not new, just update its priority without changing ready queues
+    // else, do nothing
+    if(e->env_status != ENV_NEW)
+    {
+    	//
+    	// update the priority of the env
+		fixed_point_t r1 = fix_int(PRI_MAX);
+		fixed_point_t x = fix_int(4);
+		fixed_point_t r2 =  fix_div(e->recent_cpu , x);
+		fixed_point_t x2  = fix_int(e->nice);
+		fixed_point_t r3 = fix_scale(x2 ,2);
+
+		fixed_point_t rs1 = fix_sub(r1 ,r2);
+		fixed_point_t result =fix_sub(rs1 ,r3);
+
+		int priority = fix_trunc(result);
+
+		if(priority>num_of_ready_queues-1)
+		{
+			priority=num_of_ready_queues-1;
+		}
+		else if(priority<PRI_MIN)
+		{
+			priority=PRI_MIN;
+		}
+		//cprintf("IN ### SET NICE #### Current Env ID is %d With old Priority %d New priority%d \n",e->env_id,e->priority_value,priority);
+		e->priority_value = priority;
+		//cprintf("envId = %d with nice_value = %d and priority = %d and recent cpu = %d\n",e->env_id ,e->nice ,e->priority_value,e->recent_cpu );
+		//
+    }
 }
 int env_get_recent_cpu(struct Env* e)
 {
     //TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_recent_cpu
-    return e->recent_cpu;
-//    panic("Not implemented yet");
-    return 0;
+	 return fix_round(fix_scale(e->recent_cpu,100));
+
 }
 int get_load_average()
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - get_load_average
-	//Your code is here
-	//Comment the following line
+    return fix_round(fix_scale(load_avg,100));
 
-	panic("Not implemented yet");
-	return 0;
 }
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//

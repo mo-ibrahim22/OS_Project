@@ -494,11 +494,12 @@ int commnad_load_env(int number_of_arguments, char **arguments)
 	return 0;
 }
 
+
+
 int command_run_all(int number_of_arguments, char **arguments)
 {
 	numOfKheapVACalls = 0;
 	sched_run_all();
-
 	return 0 ;
 }
 

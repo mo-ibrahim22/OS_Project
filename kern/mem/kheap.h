@@ -40,12 +40,16 @@ unsigned int kheap_physical_address(unsigned int virtual_address);
 
 int numOfKheapVACalls ;
 
+/*2023*/
+//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialization: add suitable code here
 uint32  dstart_of_kernal_heap;
 uint32  brk_pointer;
 uint32  hard_limit;
 
-/*2023*/
-//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialization: add suitable code here
+//
+int tracked_index;
+uint32 tracked_va, tracked_size;
+//
 
 //====================================================================================
 

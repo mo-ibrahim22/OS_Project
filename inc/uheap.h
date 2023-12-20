@@ -7,6 +7,12 @@
 #define UHP_PLACE_NEXTFIT 	0x3
 #define UHP_PLACE_WORSTFIT 	0x4
 
+//
+int u_tracked_index;
+uint32 u_tracked_va, u_tracked_size;
+//
+
+
 //2020
 #define UHP_USE_BUDDY 0
 
