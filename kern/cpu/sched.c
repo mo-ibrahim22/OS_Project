@@ -10,7 +10,6 @@
 #include <kern/cmd/command_prompt.h>
 
 
-
 uint32 isSchedMethodRR(){if(scheduler_method == SCH_RR) return 1; return 0;}
 uint32 isSchedMethodMLFQ(){if(scheduler_method == SCH_MLFQ) return 1; return 0;}
 uint32 isSchedMethodBSD(){if(scheduler_method == SCH_BSD) return 1; return 0;}
@@ -39,6 +38,7 @@ void sched_init()
 void
 fos_scheduler(void)
 {
+	//	cprintf("inside scheduler\n");
 	chk1();
 	scheduler_status = SCH_STARTED;
 
@@ -164,21 +164,27 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 #if USE_KHEAP
 	sched_delete_ready_queues();
 	env_ready_queues = kmalloc(num_of_ready_queues*sizeof(struct Env_Queue));
-	quantums = kmalloc(sizeof(uint8)) ;  ///### ask here ####//
-#endif
-	quantums[0]=quantum;                //### ask here###//
-	kclock_set_quantum (quantums[0]);
+	quantums = kmalloc(num_of_ready_queues*sizeof(uint8)) ;  ///### ask here ####//
+    //env_ready_queues->size=num_of_ready_queues;
     for(int i=0 ;i<num_of_ready_queues ;i++)
     {
-        init_queue(&(env_ready_queues[i]));
+        struct Env_Queue my_queue;
+        init_queue(&my_queue);
+        env_ready_queues[i]= my_queue;
+
     }
 
-   //=========================================
+    quantums[0]=quantum;                //### ask here###//
+    kclock_set_quantum (quantums[0]);
+
+    //panic("Not implemented yet");
+    //=========================================
     //DON'T CHANGE THESE LINES=================
     scheduler_status = SCH_STOPPED;
     scheduler_method = SCH_BSD;
     //=========================================
     //=========================================
+#endif
 }
 //=========================
 // [6] MLFQ Scheduler:
@@ -212,29 +218,6 @@ struct Env* fos_scheduler_MLFQ()
 //int flag = 0;
 struct Env* fos_scheduler_BSD()
 {
-<<<<<<< HEAD
-	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
-
-	/*cprintf("\nBefore\n");
-	sched_print_all();*/
-
-	if (curenv != NULL)
-	{
-		enqueue(&(env_ready_queues[curenv->priority_value]), curenv);
-	}
-
-	/*cprintf("\nAfter\n");
-	sched_print_all();
-	*/
-	struct Env *required_env=NULL;
-    for(int i=num_of_ready_queues-1 ;i>=0 ;i--)
-    {
-        int size = queue_size(&(env_ready_queues[i]));
-        if(size>0)
-        {
-        	required_env = dequeue(&env_ready_queues[i]);
-            break;
-=======
 
 	//sched_print_all();
 	if (curenv != NULL)
@@ -262,24 +245,9 @@ struct Env* fos_scheduler_BSD()
             //remove_from_queue(&queue ,);      //need to discuss
 
              break;
->>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
         }
 
     }
-<<<<<<< HEAD
-    kclock_set_quantum(quantums[0]);
-    /*if(required_env != NULL)
-    	cprintf("\nThe next env =%x\n",required_env->env_id);
-    */
-
-    // if there is no any other envs in system, then load average will = 0
-    if(required_env == NULL )
-    {
-    	load_avg = fix_int(0);
-    }
-
-    return required_env;
-=======
    // cprintf("num of process = %d",total());l
 
     //#############   ask here  #################################//
@@ -296,171 +264,11 @@ struct Env* fos_scheduler_BSD()
     //Comment the following line
     //panic("Not implemented yet");
     //return NULL;
->>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 }
 //========================================
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
-<<<<<<< HEAD
-
-int num_of_ready_processes()
-{
-	int total_num=0;
-
-	for(int i=0 ;i<num_of_ready_queues ;i++)
-	{
-		int num_of_processes_in_queue = queue_size(&(env_ready_queues[i]));
-		total_num+=num_of_processes_in_queue;
-	}
-
-	// the running does not exist in ready_queues, so we should check about it
-	if(curenv!=NULL)
-	{
-		total_num+=1;
-	}
-
-	return total_num ;
-}
-
-void change_recent_cpu()
-{
-	// change recent_cpu for ready processes
-	for(int i=0 ;i<num_of_ready_queues;i++)
-	{
-		 struct Env *process;
-		 LIST_FOREACH( process, &env_ready_queues[i])
-		 {
-			// change recent_cpu
-			fixed_point_t r1 = fix_scale(load_avg,2); // before divide
-			fixed_point_t r2 = fix_add(r1 , fix_int(1));
-			fixed_point_t x1 = fix_div(r1 ,r2); // before *
-			fixed_point_t x2 = fix_mul(x1 ,process->recent_cpu);
-			fixed_point_t result = fix_add(x2 , fix_int(process->nice));
-			process->recent_cpu =result ;
-		 }
-	}
-
-	if(curenv != NULL)
-	{
-		// change recent_cpu for running process
-		fixed_point_t r1 = fix_scale(load_avg,2); // before divide
-		fixed_point_t r2 =fix_add(r1 ,fix_int(1));// r1 + ;
-		fixed_point_t x1 = fix_div(r1 ,r2); // before *
-		fixed_point_t x2 = fix_mul(x1 ,curenv->recent_cpu);
-		fixed_point_t result = fix_add(x2 , fix_int(curenv->nice));
-		curenv->recent_cpu = result;
-	}
-
-}
-
-void change_priority()
-{
-	// change priority for ready processes
-	for(int i=0 ;i<num_of_ready_queues;i++)
-	{
-		 struct Env *process;
-		 int size = queue_size(&(env_ready_queues[i]));
-
-		 while(size > 0)
-		 {
-			 process = dequeue(&env_ready_queues[i]);
-			 fixed_point_t r1 = fix_int(PRI_MAX);   // you need to check if the PRI_MAX is int
-			 fixed_point_t x = fix_int(4);
-			 fixed_point_t r2 =  fix_div(process->recent_cpu , x);
-			 fixed_point_t x2  = fix_int(process->nice);
-			 fixed_point_t r3 = fix_scale(x2 ,2);
-
-			 fixed_point_t rs1 = fix_sub(r1 ,r2);
-			 fixed_point_t result =fix_sub(rs1 ,r3);
-
-			 int priority = fix_trunc(result);
-			 if(priority>num_of_ready_queues-1)
-				 priority=num_of_ready_queues-1;
-			 else if(priority<PRI_MIN)
-				 priority=PRI_MIN;
-
-			process->priority_value = priority;
-			enqueue(&env_ready_queues[process->priority_value], process);
-			size--;
-		 }
-	}
-	// change the priority for the running env
-	if(curenv != NULL)
-	{
-		fixed_point_t r1 = fix_int(PRI_MAX);   // you need to check if the PRI_MAX is int
-		fixed_point_t x = fix_int(4);
-		fixed_point_t r2 =  fix_div(curenv->recent_cpu , x);
-		fixed_point_t x2  = fix_int(curenv->nice);
-		fixed_point_t r3 = fix_scale(x2 ,2);
-
-		fixed_point_t rs1 = fix_sub(r1 ,r2);
-		fixed_point_t result =fix_sub(rs1 ,r3);
-
-		int priority = fix_trunc(result);
-		if(priority>num_of_ready_queues-1)
-		{
-			priority=num_of_ready_queues-1;
-		}
-
-		else if(priority<PRI_MIN)
-		{
-			priority=PRI_MIN;
-		}
-
-		curenv->priority_value = priority;
-	}
-
-}
-void change_load_avg()  //equation = (59/60)*load_avg + (1/60) *ready_processes
-{
-	fixed_point_t n1 =fix_int(59);
-	fixed_point_t n2 =fix_int(60);
-	fixed_point_t r1 =fix_div(n1,n2);  //(59/60)
-	fixed_point_t r2=fix_mul(r1 , load_avg);  // before pluss
-
-	fixed_point_t n3 =fix_int(1);
-	fixed_point_t n4 =fix_int(60);
-	fixed_point_t r3 =fix_div(n3,n4);  //(1/60)
-
-	int ready_process = num_of_ready_processes();
-
-	fixed_point_t r4 = fix_scale(r3 , ready_process); // after plus
-	load_avg = fix_add(r2 , r4); // result of equation  (updated load_avg)
-}
-int milli_seconds = 0, ourticks = 0;
-
-void clock_interrupt_handler()
-{
-
-	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
-	if(isSchedMethodBSD())
-	{
-		ourticks++;
-		milli_seconds += quantums[0];
-
-		//[a] increment the recent_cpu for running process each tick by 1
-		fixed_point_t f1 = fix_int(1);
-		curenv->recent_cpu = fix_add(curenv->recent_cpu , f1);
-
-		// [b] at each second
-		if(milli_seconds >= 1000)
-		{
-			milli_seconds = milli_seconds - 1000;
-			//[1-b] change load average
-			change_load_avg();
-			//[2-b] change recent_cpu for all ready_processes & running one
-			change_recent_cpu();
-		}
-
-		//[c]change priority for all envs at each 4 ticks
-		if(ourticks == 4)
-		{
-			ourticks = 0;
-			change_priority();
-		}
-	}
-=======
 int num_of_ready_processes()
 {
 	int total_num=0;
@@ -534,7 +342,6 @@ void change_priority()
 }
 void clock_interrupt_handler()
 {
->>>>>>> 69452a133dff6b3f72992f1668260d77c3086a86
 
 
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
@@ -598,7 +405,7 @@ void clock_interrupt_handler()
 		}
 	}
 	/********DON'T CHANGE THIS LINE***********/
-	ticks++;
+	ticks++ ;
 	if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_TIME_APPROX))
 	{
 		update_WS_time_stamps();
