@@ -12,6 +12,7 @@
 
 ///============================================================================================
 /// Dealing with environment working set
+
 #if USE_KHEAP
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
@@ -27,19 +28,58 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 		}
 		else
 		{
-		    new_workingset_element->virtual_address = virtual_address;
+
+		    new_workingset_element->virtual_address = ROUNDDOWN(virtual_address,PAGE_SIZE);
+		    //
+		    // Dealing with O(1) Invalidate
+		    // first: get the corresponding physical address to the given virtual aaddress
+		    // second: get it's frame info
+		    // set working set pointer in frame info to this new workingSet element
+		    uint32* ptr_page_table = NULL;
+		    //get the page table.
+		    get_page_table(e->env_page_directory, virtual_address, &ptr_page_table);
+		    // get the frame from page table.
+		    struct FrameInfo * target_frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+
+		    target_frame->element = new_workingset_element;
+		    //
+
 	    	return new_workingset_element;
 		}
 }
+//
+// This function will be updated t to be O(1) implementation
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		bool found = 0;
 		struct WorkingSetElement *ptr_WS_element = NULL;
-		LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
+		//
+		// the current logic is:
+		// search in ActivateList for the working set the remove it
+		// if not found in ActivateList, then it should be in secondList
+		// then remove it from secondList
+		//
+
+		//
+		// new Logic:
+		// 1- check in O(1) if it is found in ActivateList or not using PERM_PRESENT in page table
+		// 2- get the workingSetElement in O(1) if it found in ActivateList
+		//
+		//LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
+		uint32* ptr_page_table = NULL;
+		//get the page table.
+		get_page_table(e->env_page_directory, virtual_address, &ptr_page_table);
+		// get the frame from page table.
+		struct FrameInfo * target_frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+
+		ptr_WS_element = target_frame->element;
+
+		uint32 perm = pt_get_page_permissions(e->env_page_directory, virtual_address) ;
+		if((perm & PERM_PRESENT) == PERM_PRESENT)
 		{
-			if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+			//if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
 			{
 				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
 				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
@@ -49,35 +89,46 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 				{
 					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
 					LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
-					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
+					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, PERM_IN_LRU_SECOND_LIST);
 				}
 				found = 1;
-				break;
+				//break;
 			}
 		}
 
 		if (!found)
 		{
-			ptr_WS_element = NULL;
-			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
+			//ptr_WS_element = NULL;
+			//LIST_FOREACH(ptr_WS_element, &(e->SecondList))
 			{
-				if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+				//if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
 				{
 					unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+					pt_set_page_permissions(e->env_page_directory, ptr_WS_element->virtual_address, 0,PERM_IN_LRU_SECOND_LIST);
+
 					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
 
 					kfree(ptr_WS_element);
-					break;
+					//break;
 				}
 			}
 		}
 	}
+
+	// FIFO Replacement
 	else
 	{
 		struct WorkingSetElement *wse;
-		LIST_FOREACH(wse, &(e->page_WS_list))
+		uint32* ptr_page_table = NULL;
+		//get the page table.
+		get_page_table(e->env_page_directory, virtual_address, &ptr_page_table);
+		// get the frame from page table.
+		struct FrameInfo * target_frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+
+		wse = target_frame->element;
+		//LIST_FOREACH(wse, &(e->page_WS_list))
 		{
-			if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+			//if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
 			{
 				if (e->page_last_WS_element == wse)
 				{
@@ -86,7 +137,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 				LIST_REMOVE(&(e->page_WS_list), wse);
 				kfree(wse);
-				break;
+				//break;
 			}
 		}
 	}
@@ -94,7 +145,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 void env_page_ws_print(struct Env *e)
 {
-	return;
+	//return;
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		int i = 0;

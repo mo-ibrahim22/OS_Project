@@ -10,6 +10,8 @@
 //
 int u_tracked_index;
 uint32 u_tracked_va, u_tracked_size;
+uint32  first_free_page;
+int flag;
 //
 
 

@@ -11,7 +11,6 @@ _main(void)
 	char buff1[256];
 	atomic_readline("Please enter a number:", buff1);
 	i1 = strtol(buff1, NULL, 10);
-
 	int res = factorial(i1) ;
 
 	atomic_cprintf("Factorial %d = %d\n",i1, res);

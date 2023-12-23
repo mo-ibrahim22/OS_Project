@@ -388,7 +388,8 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 		LIST_FOREACH(elm, &(e->SecondList))
 		{
 			//set it's PRESENT bit to 0
-			pt_set_page_permissions(e->env_page_directory, elm->virtual_address, 0, PERM_PRESENT);
+			// Updated By Farouk --> Set PERM_IN_SECOND_LIST to 1
+			pt_set_page_permissions(e->env_page_directory, elm->virtual_address,PERM_IN_LRU_SECOND_LIST, PERM_PRESENT);
 		}
 	}
 
@@ -435,6 +436,7 @@ void env_run(struct Env *e)
 	env_pop_tf(&(curenv->env_tf));
 }
 
+
 //===============================
 // 3) FREE ENV FROM THE SYSTEM:
 //===============================
@@ -443,18 +445,75 @@ void env_run(struct Env *e)
 void env_free(struct Env *e)
 {
 	/*REMOVE THIS LINE BEFORE START CODING*/
-	return;
+	//return;
 	/**************************************/
 
 	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
 	// your code is here, remove the panic and write your code
 	{
-		panic("env_free() is not implemented yet...!!");
 
+		//[1]Free All pages in the page working set (or LRU lists)
+		if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+		{
+			struct WorkingSetElement *ptr_WS_element = NULL;
+			LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
+			{
+				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
+				kfree(ptr_WS_element);
+			}
 
+			ptr_WS_element = NULL;
+			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
+			{
 
+				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+				LIST_REMOVE(&(e->SecondList), ptr_WS_element);
 
+				kfree(ptr_WS_element);
+			}
+		}
+		else
+		{
+			struct WorkingSetElement *wse;
+			LIST_FOREACH(wse, &(e->page_WS_list))
+			{
+				unmap_frame(e->env_page_directory, wse->virtual_address);
+				LIST_REMOVE(&(e->page_WS_list), wse);
+				kfree(wse);
+			}
+		}
 
+		/* This is habd :)
+		//[2] free Working set itself (or LRU lists)
+
+		kfree(e->page_WS_list.lh_first);
+		kfree(e->page_WS_list.lh_last);
+
+		kfree(e->ActiveList.lh_first);
+		kfree(e->ActiveList.lh_last);
+
+		kfree(e->SecondList.lh_first);
+		kfree(e->SecondList.lh_last);
+		 */
+
+		//[3] free all its tables from the main memory
+		for (uint32 virt_addr = 0; virt_addr < USER_TOP; virt_addr += 1024 * PAGE_SIZE)
+		{
+			uint32* ptr_page_table;
+			int ret = get_page_table(e->env_page_directory, virt_addr, &ptr_page_table);
+
+			if (ret == TABLE_IN_MEMORY)
+			{
+				kfree(ptr_page_table);
+				e->env_page_directory[PDX(virt_addr)] = 0;
+			}
+		}
+
+		//[4] free the page directory from the main memory
+		kfree(e->env_page_directory);
+		e->env_page_directory = NULL;
+		e->env_cr3 = 0;
 
 	}
 
@@ -469,7 +528,6 @@ void env_free(struct Env *e)
 	/*========================*/
 
 }
-
 
 //============================
 // 4) PLACE ENV IN EXIT QUEUE:

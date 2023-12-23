@@ -27,7 +27,6 @@ struct BlockMetaData
 	LIST_ENTRY(BlockMetaData) prev_next_info;	/* linked list links */
 };
 
-struct BlockMetaData * tracked_block ;
 
 #define sizeOfMetaData() (sizeof(struct BlockMetaData))
 

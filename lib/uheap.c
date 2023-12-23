@@ -37,8 +37,6 @@ uint32 size_user_va [NUM_OF_UHEAP_PAGES];
 uint32 user_page_status[NUM_OF_UHEAP_PAGES];
 struct  Env currenv ;
 
-
-
 void* malloc(uint32 size)
 {
 	//==============================================================
@@ -47,31 +45,43 @@ void* malloc(uint32 size)
 	if (size == 0) return NULL ;
 	//==============================================================
 	//TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
-	// Write your code here, remove the panic and write your code
-	//panic("malloc() is not implemented yet...!!");
 
 	 if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
 	 {
-		//cprintf("BLOCK\n");
+		//cprintf("BLOCK with size = %d\n" , size);
 		void* pointer_ = alloc_block_FF(size);
 		return pointer_ ;
 	 }
 
 	 else
 	 {
-		 //cprintf("1\n");
+
 		 int num_of_page_to_mark = (int)(ROUNDUP(size, PAGE_SIZE) / (uint32)PAGE_SIZE) ;
 		 uint32  hardLimt = (uint32) sys_u_hard_limit();
 
+		 //
+		 if( flag == 0)
+		 {
+			 first_free_page = hardLimt + PAGE_SIZE;
+			 flag = 1;
+		 }
+		 //
 		 uint32 va_to_check;
 		 if(u_tracked_va == 0 || u_tracked_size > ROUNDUP(size, PAGE_SIZE))
 		  {
 
-			 va_to_check = hardLimt + PAGE_SIZE ;
+			 va_to_check = first_free_page;
 		  }
 		  else
 		  {
-			 va_to_check = u_tracked_va;
+			  if(first_free_page > u_tracked_va)
+			  {
+				  va_to_check = first_free_page;
+			  }
+			  else
+			  {
+				  va_to_check = u_tracked_va;
+			  }
 		  }
 		 int cnt = 0 ;
 
@@ -109,10 +119,24 @@ void* malloc(uint32 size)
 		 else
 		 {
 			 uint32 index_of_base_address = (base_address / PAGE_SIZE) - ((hardLimt + PAGE_SIZE) / PAGE_SIZE );
+
+			 if(base_address == first_free_page)
+			 {
+				 for(int i = index_of_base_address+cnt; ; i++)
+				 {
+					 if(user_page_status[i] == 0)
+					 {
+						 first_free_page = (hardLimt + PAGE_SIZE) + (i * PAGE_SIZE);
+						 break;
+					 }
+				 }
+			 }
+
 			 for(int i=index_of_base_address ;i < index_of_base_address+cnt ;i++)
 			 {
 				 user_page_status[i]=(uint32)1;
 			 }
+
 			 for(int i=u_tracked_index ;i< NUM_OF_UHEAP_PAGES;i++)
 			 {
 				 if(arr_user_va[i]==(uint32)0)
@@ -157,6 +181,7 @@ void free(void* virtual_address)
 	 *  	4- get the index of the virtual address in the user_page_status   ----> done
 	 *  	5- change status of pages required from 1 to 0
 	 */
+	//cprintf("Free\n");
 	// implementation of the logic of the function
 	 if((uint32)virtual_address>=USER_HEAP_START &&(uint32)virtual_address<sys_u_hard_limit())
 	 {
@@ -188,6 +213,13 @@ void free(void* virtual_address)
 		 {
 			 user_page_status[i]=(uint32)0;
 		 }
+		 //
+		 if((uint32)virtual_address<first_free_page)
+		 {
+			 first_free_page = (uint32)virtual_address;
+		 }
+
+		 //
 		 sys_free_user_mem((uint32)virtual_address ,size_taken_for_va);
 	 }
 	//////////////////////////////////////////

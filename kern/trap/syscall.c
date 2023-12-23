@@ -545,6 +545,8 @@ void* sys_sbrk(int increment)
 	 * 	  if the increment < 0
 	 * 	  	-deallocate& unmap    or  unmark   depend on the page it self
 	 */
+	//cprintf("IN USER SBRK\n");
+
 	struct Env* env = curenv;//the current running Environment to adjust its break limit
 	uint32 currenv_brk_pointer =env->Useg_brk;
 	if(increment==0)
@@ -554,6 +556,7 @@ void* sys_sbrk(int increment)
 
 	else if(increment>0)
 	{
+
 		uint32 size_to_increment = ROUNDUP(increment, PAGE_SIZE);
 		uint32 new_pointer = ROUNDUP(currenv_brk_pointer, PAGE_SIZE)+size_to_increment;
 		if(new_pointer>env->Uhard_limit)

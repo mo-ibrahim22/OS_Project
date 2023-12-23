@@ -88,7 +88,7 @@ void* increment_break_pointer(int increment)
 	//cprintf("size to increment = %d\n",size_to_increment);
 	size_to_increment = ROUNDUP(size_to_increment, PAGE_SIZE) ;
 	//cprintf("size to increment after round up = %d\n",size_to_increment);
-	uint32 new_brk = ROUNDUP(brk_pointer, PAGE_SIZE) +size_to_increment ;
+	uint32 new_brk =ROUNDUP(brk_pointer, PAGE_SIZE) +size_to_increment ;
 	if(new_brk>hard_limit)
 	{
 		 panic("hard limit has been broken !!\n");
@@ -169,7 +169,7 @@ void* kmalloc(unsigned int size)
 {
      if(size<=DYN_ALLOC_MAX_BLOCK_SIZE)
      {
-    	// cprintf("I'm here 1  and my  size = %d\n" ,size);
+    	 //cprintf("I'm here 1  and my  size = %d\n" ,size);
     	 void* pointer_ = alloc_block_FF(size);
     	 //cprintf("i'm finsihed with  va %d\n", (void *)pointer_);
     	 return pointer_;

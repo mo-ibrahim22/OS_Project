@@ -69,6 +69,7 @@ uint32 getModifiedBufferLength();
 
 void add_WS_element_FIFO_placement(struct WorkingSetElement* new_workingset_element, uint32 wsSize);
 void add_WS_element_LRU_placement(uint32 fault_va);
+void add_WS_element_LRU_RE_placement(struct WorkingSetElement* new_workingset_element, uint32 fault_va);
 
 //===============================
 // FAULT HANDLERS

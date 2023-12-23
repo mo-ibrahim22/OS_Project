@@ -142,6 +142,7 @@ void initialize_frame_info(struct FrameInfo *ptr_frame_info)
 
 //extern void env_free(struct Env *e);
 
+
 int allocate_frame(struct FrameInfo **ptr_frame_info)
 {
 	*ptr_frame_info = LIST_FIRST(&free_frame_list);
@@ -149,10 +150,204 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 	if (*ptr_frame_info == NULL)
 	{
 		//TODO: [PROJECT'23.MS3 - BONUS] Free RAM when it's FULL
-		panic("ERROR: Kernel run out of memory... allocate_frame cannot find a free frame.\n");
 		// When allocating new frame, if there's no free frame, then you should:
 		//	1-	If any process has exited (those with status ENV_EXIT), then remove one or more of these exited processes from the main memory
+		if(!LIST_EMPTY(&env_exit_queue))
+		{
+			struct Env* ptr_env ;
+			LIST_FOREACH(ptr_env, &env_exit_queue)
+			{
+				env_free(ptr_env);
+			}
+		}
 		//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
+		else
+		{
+			// free one frame from all ready Envs
+			for(int i=0 ;i<num_of_ready_queues;i++)
+			{
+				struct Env *process;
+				LIST_FOREACH(process, &env_ready_queues[i])
+				{
+					// IF LRU
+					if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+					{
+						// if there is elements in second List, then remove from it
+						if(LIST_SIZE(&process->SecondList))
+						{
+							struct WorkingSetElement* ptr_tmp_WS_element = LIST_LAST(&process->SecondList);
+							LIST_REMOVE(&process->SecondList, ptr_tmp_WS_element);
+							// get page permissions
+							uint32 permissions = pt_get_page_permissions( process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							// If Modified -> Then update it
+							if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+							{
+								// get the page table.
+								uint32* ptr_page_table = NULL;
+								get_page_table(process->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+								// Get Pointer To Frame Info
+								struct FrameInfo *ptr_frame_info = get_frame_info(process->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+								// Update the page in page file
+								int ret = pf_update_env_page(process, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+							}
+							unmap_frame(process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							pt_set_page_permissions(process->env_page_directory, ptr_tmp_WS_element->virtual_address, 0,PERM_IN_LRU_SECOND_LIST);
+							kfree(ptr_tmp_WS_element);
+
+						}
+						// I should remove from Active List if its size
+						else
+						{
+							if(LIST_SIZE(&process->ActiveList))
+							{
+								struct WorkingSetElement* ptr_tmp_WS_element = LIST_LAST(&process->ActiveList);
+								LIST_REMOVE(&process->ActiveList, ptr_tmp_WS_element);
+								// get page permissions
+								uint32 permissions = pt_get_page_permissions( process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+								// If Modified -> Then update it
+								if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+								{
+									// get the page table.
+									uint32* ptr_page_table = NULL;
+									get_page_table(process->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+									// Get Pointer To Frame Info
+									struct FrameInfo *ptr_frame_info = get_frame_info(process->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+									// Update the page in page file
+									int ret = pf_update_env_page(process, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+								}
+								unmap_frame(process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+								kfree(ptr_tmp_WS_element);
+							}
+						}
+					}
+					// if FIFO
+					else
+					{
+						if(LIST_SIZE(&process->page_WS_list))
+						{
+							struct WorkingSetElement* ptr_tmp_WS_element;
+							if(process->page_last_WS_element == NULL)
+							{
+								ptr_tmp_WS_element = LIST_FIRST(&process->page_WS_list);
+								LIST_REMOVE(&process->page_WS_list, ptr_tmp_WS_element);
+							}
+							else
+							{
+								ptr_tmp_WS_element = process->page_last_WS_element;
+								process->page_last_WS_element = process->page_last_WS_element->prev_next_info.le_next;
+								LIST_REMOVE(&process->page_WS_list, ptr_tmp_WS_element);
+							}
+
+							// get page permissions
+							uint32 permissions = pt_get_page_permissions( process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							// If Modified -> Then update it
+							if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+							{
+								// get the page table.
+								uint32* ptr_page_table = NULL;
+								get_page_table(process->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+								// Get Pointer To Frame Info
+								struct FrameInfo *ptr_frame_info = get_frame_info(process->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+								// Update the page in page file
+								int ret = pf_update_env_page(process, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+							}
+							unmap_frame(process->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							kfree(ptr_tmp_WS_element);
+						}
+					}
+
+				 }
+			}
+			if(curenv != NULL)
+			{
+				// IF LRU
+				if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+				{
+					// if there is elements in second List, then remove from it
+					if(LIST_SIZE(&curenv->SecondList))
+					{
+						struct WorkingSetElement* ptr_tmp_WS_element = LIST_LAST(&curenv->SecondList);
+						LIST_REMOVE(&curenv->SecondList, ptr_tmp_WS_element);
+						// get page permissions
+						uint32 permissions = pt_get_page_permissions( curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+						// If Modified -> Then update it
+						if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+						{
+							// get the page table.
+							uint32* ptr_page_table = NULL;
+							get_page_table(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+							// Get Pointer To Frame Info
+							struct FrameInfo *ptr_frame_info = get_frame_info(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+							// Update the page in page file
+							int ret = pf_update_env_page(curenv, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+						}
+						unmap_frame(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+						pt_set_page_permissions(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address, 0,PERM_IN_LRU_SECOND_LIST);
+						kfree(ptr_tmp_WS_element);
+					}
+					// I should remove from Active List if its size
+					else
+					{
+						if(LIST_SIZE(&curenv->ActiveList))
+						{
+							struct WorkingSetElement* ptr_tmp_WS_element = LIST_LAST(&curenv->ActiveList);
+							LIST_REMOVE(&curenv->ActiveList, ptr_tmp_WS_element);
+							// get page permissions
+							uint32 permissions = pt_get_page_permissions( curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							// If Modified -> Then update it
+							if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+							{
+								// get the page table.
+								uint32* ptr_page_table = NULL;
+								get_page_table(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+								// Get Pointer To Frame Info
+								struct FrameInfo *ptr_frame_info = get_frame_info(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+								// Update the page in page file
+								int ret = pf_update_env_page(curenv, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+							}
+							unmap_frame(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+							kfree(ptr_tmp_WS_element);
+						}
+					}
+				}
+				// if FIFO
+				else
+				{
+					if(LIST_SIZE(&curenv->page_WS_list))
+					{
+						struct WorkingSetElement* ptr_tmp_WS_element;
+						if(curenv->page_last_WS_element == NULL)
+						{
+							ptr_tmp_WS_element = LIST_FIRST(&curenv->page_WS_list);
+							LIST_REMOVE(&curenv->page_WS_list, ptr_tmp_WS_element);
+						}
+						else
+						{
+							ptr_tmp_WS_element = curenv->page_last_WS_element;
+							curenv->page_last_WS_element = curenv->page_last_WS_element->prev_next_info.le_next;
+							LIST_REMOVE(&curenv->page_WS_list, ptr_tmp_WS_element);
+						}
+						// get page permissions
+						uint32 permissions = pt_get_page_permissions( curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+						// If Modified -> Then update it
+						if((permissions & PERM_MODIFIED) == PERM_MODIFIED)
+						{
+							// get the page table.
+							uint32* ptr_page_table = NULL;
+							get_page_table(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address, &ptr_page_table);
+							// Get Pointer To Frame Info
+							struct FrameInfo *ptr_frame_info = get_frame_info(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address,&ptr_page_table);
+							// Update the page in page file
+							int ret = pf_update_env_page(curenv, ptr_tmp_WS_element->virtual_address, ptr_frame_info);
+						}
+						unmap_frame(curenv->env_page_directory, ptr_tmp_WS_element->virtual_address);
+						kfree(ptr_tmp_WS_element);
+					}
+				}
+			}
+		}
+
+		*ptr_frame_info = LIST_FIRST(&free_frame_list);
 	}
 
 	LIST_REMOVE(&free_frame_list,*ptr_frame_info);
@@ -172,6 +367,7 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 	initialize_frame_info(*ptr_frame_info);
 	return 0;
 }
+
 
 //
 // Return a frame to the free_frame_list.

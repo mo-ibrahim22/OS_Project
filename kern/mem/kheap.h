@@ -49,6 +49,7 @@ uint32  hard_limit;
 //
 int tracked_index;
 uint32 tracked_va, tracked_size;
+uint32  first_free_page;
 //
 
 //====================================================================================
